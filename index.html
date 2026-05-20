@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard · Órdenes Pendientes PYL | GTN</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg:     #0b1124;
+    --bg2:    #0f1a35;
+    --bg3:    #162040;
+    --bg4:    #1c2a50;
+    --border: rgba(100,160,255,0.10);
+    --border2: rgba(100,160,255,0.20);
+    --text:   #e8f0ff;
+    --text2:  #7a9acd;
+    --text3:  #3d5a8a;
+    --accent:  #00c8ff;
+    --accent2: #0099cc;
+    --magenta: #ff2d78;
+    --orange:  #ff8c00;
+    --green:   #00e5a0;
+    --red:     #ff4466;
+    --amber:   #ffb020;
+    --purple:  #a855f7;
+    --teal:    #00c8ff;
+    --font: 'IBM Plex Sans', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+    --r: 6px;
+    --r2: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; min-height: 100vh; }
+
+  /* ── HEADER ── */
+  .topbar { background: var(--bg2); border-bottom: 2px solid var(--accent2); padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 100; }
+  .topbar-left { display: flex; align-items: center; gap: 16px; }
+  .logo-badge { background: var(--accent2); color: #fff; font-weight: 700; font-size: 13px; padding: 5px 10px; border-radius: var(--r); letter-spacing: 1px; }
+  .logo { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: 1px; text-transform: uppercase; }
+  .logo span { color: var(--accent); }
+  .logo-sub { font-size: 10px; color: var(--text2); letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-top: 1px; }
+  .divider { width: 1px; height: 24px; background: var(--border2); }
+  .subtitle { font-size: 11px; color: var(--text2); letter-spacing: .5px; text-transform: uppercase; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .corte-badge { text-align: right; }
+  .corte-badge .label { font-size: 9px; color: var(--text3); letter-spacing: 1.5px; text-transform: uppercase; }
+  .corte-badge .value { font-size: 22px; font-weight: 700; color: var(--amber); font-family: var(--mono); line-height: 1.1; }
+  .btn { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: var(--r); border: 1px solid var(--border2); background: transparent; color: var(--text2); font-family: var(--font); font-size: 12px; cursor: pointer; transition: all .15s; letter-spacing: .3px; }
+  .btn:hover { background: var(--bg3); color: var(--text); border-color: var(--accent); }
+  .btn-primary { background: var(--accent2); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent); }
+  .btn svg { width: 14px; height: 14px; }
+
+  /* ── STATUS ── */
+  .status-bar { padding: 7px 2rem; background: var(--bg3); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--text2); flex-wrap: wrap; letter-spacing: .3px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+  .dot.loading { background: var(--amber); animation: pulse 1s infinite; }
+  .dot.error { background: var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .progress-wrap { flex: 1; min-width: 120px; max-width: 300px; height: 2px; background: var(--bg4); border-radius: 99px; overflow: hidden; }
+  .progress-bar { height: 100%; background: var(--accent); border-radius: 99px; transition: width .3s; }
+
+  /* ── LAYOUT ── */
+  .main { padding: 1.5rem 2rem 3rem; max-width: 1400px; margin: 0 auto; }
+
+  /* ── SECTION LABELS ── */
+  .section-label { font-size: 10px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .section-label::before { content:''; display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--accent); }
+
+  /* ── FILTERS ── */
+  .filters-bar { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 10px 16px; display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 1.5rem; align-items: center; }
+  .filters-bar label { font-size: 10px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; margin-right: -4px; }
+  .filters-bar select { background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r); color: var(--text); font-family: var(--font); font-size: 12px; padding: 5px 10px; cursor: pointer; }
+  .filters-bar select:focus { outline: none; border-color: var(--accent); }
+  .filter-sep { width: 1px; height: 20px; background: var(--border); }
+
+  /* ── KPI GRID ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .kpi { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.1rem 1.3rem; position: relative; overflow: hidden; }
+  .kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--kpi-color, var(--accent)); }
+  .kpi-label { font-size: 9px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text2); margin-bottom: 10px; }
+  .kpi-value { font-size: 28px; font-weight: 700; color: var(--kpi-color, var(--accent)); line-height: 1; font-variant-numeric: tabular-nums; }
+  .kpi-sub { font-size: 10px; color: var(--text3); margin-top: 8px; font-family: var(--mono); letter-spacing: .3px; }
+  .kpi-icon { position: absolute; bottom: 10px; right: 14px; font-size: 28px; opacity: .07; }
+
+  /* ── DATE NAVIGATOR ── */
+  .date-nav-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 10px 14px; margin-bottom: 1.5rem; }
+  .date-nav { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .date-chip { font-size: 11px; padding: 4px 12px; border-radius: 99px; border: 1px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; font-family: var(--mono); transition: all .12s; }
+  .date-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .date-chip.active { background: var(--accent2); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .date-chip.all { }
+  .date-chip.all.active { background: var(--bg4); border-color: var(--text2); color: var(--text); }
+
+  /* ── CHARTS ── */
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.5rem; }
+  .chart-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.3rem 1.5rem; }
+  .chart-card.full { grid-column: 1 / -1; }
+  .card-title { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text); margin-bottom: 2px; display:flex; align-items:center; gap:8px; }
+  .card-title::before { content:''; width:8px; height:8px; border-radius:50%; background:var(--card-accent, var(--accent)); flex-shrink:0; }
+  .card-sub { font-size: 11px; color: var(--text2); margin-bottom: 1rem; padding-left: 16px; }
+  .legend-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; padding-left: 16px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text2); letter-spacing: .3px; }
+  .legend-sq { width: 8px; height: 8px; border-radius: 2px; }
+
+  /* ── TABLE ── */
+  .table-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r2); padding: 1.3rem 1.5rem; margin-bottom: 1.5rem; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { font-size: 9px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text3); padding: 7px 10px; border-bottom: 1px solid var(--border2); text-align: left; white-space: nowrap; }
+  td { padding: 8px 10px; color: var(--text); border-bottom: 1px solid var(--border); white-space: nowrap; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(0,200,255,0.03); }
+  .pill { display: inline-block; font-size: 10px; padding: 2px 9px; border-radius: 99px; font-weight: 600; white-space: nowrap; letter-spacing: .3px; }
+  .pill-green { background: rgba(0,229,160,0.12); color: #00e5a0; border: 1px solid rgba(0,229,160,0.25); }
+  .pill-red   { background: rgba(255,68,102,0.12);  color: #ff4466; border: 1px solid rgba(255,68,102,0.25); }
+  .pill-amber { background: rgba(255,176,32,0.12); color: #ffb020; border: 1px solid rgba(255,176,32,0.25); }
+  .pill-gray  { background: rgba(100,130,180,0.12); color: var(--text2); border: 1px solid var(--border2); }
+  .bar-mini { height: 3px; border-radius: 99px; background: var(--accent2); display: inline-block; vertical-align: middle; opacity: .7; }
+
+  /* ── FOOTER ── */
+  .footer { font-size: 10px; color: var(--text3); text-align: center; margin-top: 2rem; font-family: var(--mono); letter-spacing: .5px; text-transform: uppercase; }
+
+  /* ── EMPTY ── */
+  .empty { text-align: center; padding: 2.5rem; color: var(--text3); font-size: 13px; }
+
+  @media (max-width: 640px) {
+    .topbar { padding: 0 1rem; }
+    .main { padding: 1rem 1rem 2rem; }
+    .charts-grid { grid-template-columns: 1fr; }
+    .chart-card.full { grid-column: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="logo-badge">GTN</span>
+    <div>
+      <span class="logo">Dashboard Ejecutivo · <span>Órdenes PYL</span></span>
+      <span class="logo-sub">Proyectos e Implementación · Gestión de Pendientes</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <button class="btn btn-primary" onclick="loadAll()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+      Actualizar
+    </button>
+    <div class="corte-badge">
+      <div class="label">Corte</div>
+      <div class="value" id="last-update">—</div>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div class="dot loading" id="st-dot"></div>
+  <span id="st-msg">Iniciando carga...</span>
+  <div class="progress-wrap" id="prog-wrap" style="display:none">
+    <div class="progress-bar" id="prog-bar" style="width:0%"></div>
+  </div>
+  <span id="st-detail" style="margin-left:auto;font-family:var(--mono)"></span>
+</div>
+
+<div class="main">
+
+  <!-- DATE NAV -->
+  <div style="margin-bottom:1.2rem">
+    <div class="section-label">Corte de fecha</div>
+    <div class="date-nav-wrap">
+      <div class="date-nav" id="date-nav"></div>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="section-label">Filtros</div>
+  <div class="filters-bar" id="filters-row">
+    <label>Gestor</label>
+    <select id="fil-gestor" onchange="applyFilters()"><option value="">Todos</option></select>
+    <div class="filter-sep"></div>
+    <label>Estado solicitud</label>
+    <select id="fil-estado" onchange="applyFilters()"><option value="">Todos</option></select>
+    <div class="filter-sep"></div>
+    <label>Tipo empresa</label>
+    <select id="fil-empresa" onchange="applyFilters()"><option value="">Todos</option></select>
+    <div class="filter-sep"></div>
+    <label>Motivo</label>
+    <select id="fil-motivo" onchange="applyFilters()"><option value="">Todos</option></select>
+    <div class="filter-sep"></div>
+    <label>Tipo enlace</label>
+    <select id="fil-enlace" onchange="applyFilters()"><option value="">Todos</option></select>
+  </div>
+
+  <!-- KPIs -->
+  <div class="section-label" style="margin-bottom:10px">Indicadores clave</div>
+  <div class="kpi-grid">
+    <div class="kpi" style="--kpi-color:var(--accent)">
+      <div class="kpi-label">Total órdenes</div>
+      <div class="kpi-value" id="k-total">—</div>
+      <div class="kpi-sub" id="k-total-sub">registros cargados</div>
+      <div class="kpi-icon">📋</div>
+    </div>
+    <div class="kpi" style="--kpi-color:var(--purple)">
+      <div class="kpi-label">Gestores activos</div>
+      <div class="kpi-value" id="k-gestores">—</div>
+      <div class="kpi-sub">con órdenes asignadas</div>
+      <div class="kpi-icon">👤</div>
+    </div>
+    <div class="kpi" style="--kpi-color:var(--green)">
+      <div class="kpi-label">Planificadas</div>
+      <div class="kpi-value" id="k-plan">—</div>
+      <div class="kpi-sub" id="k-plan-pct">del total</div>
+      <div class="kpi-icon">✅</div>
+    </div>
+    <div class="kpi" style="--kpi-color:var(--red)">
+      <div class="kpi-label">Sin planificar</div>
+      <div class="kpi-value" id="k-noplan">—</div>
+      <div class="kpi-sub" id="k-noplan-pct">del total</div>
+      <div class="kpi-icon">⚠</div>
+    </div>
+    <div class="kpi" style="--kpi-color:var(--amber)">
+      <div class="kpi-label">Clientes únicos</div>
+      <div class="kpi-value" id="k-clientes">—</div>
+      <div class="kpi-sub">empresas distintas</div>
+      <div class="kpi-icon">🏢</div>
+    </div>
+    <div class="kpi" style="--kpi-color:var(--magenta)">
+      <div class="kpi-label">Hojas cargadas</div>
+      <div class="kpi-value" id="k-hojas">—</div>
+      <div class="kpi-sub" id="k-hojas-sub">fechas disponibles</div>
+      <div class="kpi-icon">📅</div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 1 -->
+  <div class="section-label">Análisis por dimensión</div>
+  <div class="charts-grid">
+    <div class="chart-card" style="--card-accent:var(--accent)">
+      <div class="card-title">Carga por gestor</div>
+      <div class="card-sub">Top 10 · N° de órdenes asignadas</div>
+      <div class="legend-row"><div class="legend-item"><span class="legend-sq" style="background:var(--accent)"></span>Órdenes</div></div>
+      <div style="position:relative;width:100%;height:260px">
+        <canvas id="ch-gestores" role="img" aria-label="Órdenes por gestor">Cargando...</canvas>
+      </div>
+    </div>
+    <div class="chart-card" style="--card-accent:var(--magenta)">
+      <div class="card-title">Estado de solicitud</div>
+      <div class="card-sub">Distribución por estado</div>
+      <div class="legend-row" id="leg-estado"></div>
+      <div style="position:relative;width:100%;height:260px">
+        <canvas id="ch-estado" role="img" aria-label="Distribución por estado de solicitud">Cargando...</canvas>
+      </div>
+    </div>
+    <div class="chart-card" style="--card-accent:var(--green)">
+      <div class="card-title">Top motivos</div>
+      <div class="card-sub">Top 10 · causas registradas</div>
+      <div class="legend-row"><div class="legend-item"><span class="legend-sq" style="background:var(--green)"></span>Órdenes</div></div>
+      <div style="position:relative;width:100%;height:260px">
+        <canvas id="ch-motivo" role="img" aria-label="Órdenes por motivo">Cargando...</canvas>
+      </div>
+    </div>
+    <div class="chart-card" style="--card-accent:var(--orange)">
+      <div class="card-title">Tipo de empresa</div>
+      <div class="card-sub">Segmentación por segmento</div>
+      <div class="legend-row" id="leg-empresa"></div>
+      <div style="position:relative;width:100%;height:260px">
+        <canvas id="ch-empresa" role="img" aria-label="Distribución por tipo de empresa">Cargando...</canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHART TENDENCIA -->
+  <div class="section-label">Tendencia · Evolución diaria</div>
+  <div class="charts-grid" style="grid-template-columns:1fr">
+    <div class="chart-card full" style="--card-accent:var(--accent)">
+      <div class="card-title">Evolución diaria de órdenes pendientes</div>
+      <div class="card-sub">N° de registros por fecha de corte · todas las hojas cargadas</div>
+      <div class="legend-row">
+        <div class="legend-item"><span class="legend-sq" style="background:var(--accent)"></span>Total órdenes</div>
+        <div class="legend-item"><span class="legend-sq" style="background:var(--green)"></span>Planificadas</div>
+        <div class="legend-item"><span class="legend-sq" style="background:var(--red)"></span>Sin planificar</div>
+      </div>
+      <div style="position:relative;width:100%;height:220px">
+        <canvas id="ch-tendencia" role="img" aria-label="Evolución diaria de órdenes">Cargando...</canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE GESTORES -->
+  <div class="section-label">Detalle por gestor</div>
+  <div class="table-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <div>
+        <div class="card-title">Detalle por gestor</div>
+        <div class="card-sub" style="margin-bottom:0">Resumen consolidado del corte seleccionado</div>
+      </div>
+      <span id="table-count" style="font-size:11px;color:var(--text3);font-family:var(--mono)"></span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Gestor</th>
+          <th>Órdenes</th>
+          <th>Planificadas</th>
+          <th>Sin planif.</th>
+          <th>% cumpl.</th>
+          <th>Clientes</th>
+          <th>Tipo enlace principal</th>
+          <th>Últ. plan</th>
+        </tr>
+      </thead>
+      <tbody id="tbl-body">
+        <tr><td colspan="9" class="empty">Cargando datos...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- TABLE TOP CLIENTES -->
+  <div class="section-label">Top clientes</div>
+  <div class="table-card">
+    <div style="margin-bottom:1rem">
+      <div class="card-title">Top clientes por órdenes</div>
+      <div class="card-sub">Empresas con mayor volumen de órdenes pendientes</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Cliente</th>
+          <th>Órdenes</th>
+          <th>Tipo empresa</th>
+          <th>Estado más frecuente</th>
+          <th>Volumen</th>
+        </tr>
+      </thead>
+      <tbody id="tbl-clientes">
+        <tr><td colspan="6" class="empty">Cargando datos...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer" id="footer-txt">GTN Proyectos e Implementación · PEI PENDIENTES · Fuente: Google Sheets</div>
+</div>
+
+<script>
+// ── CONFIGURACIÓN ──────────────────────────────────────────────────
+const SHEET_ID = '1e0LPzPCBzAuO7HXpYAYSo7ogXQg0rau5-CFrGUfyzaE';
+
+// Hojas conocidas: {fecha: 'DD-MM-YY', gid: número}
+// Agregar nuevas hojas aquí conforme se creen
+const KNOWN_SHEETS = [
+  { fecha: '01-05-26', gid: 14159634 },
+  { fecha: '02-05-26', gid: 982750352 },
+  { fecha: '04-05-26', gid: 1948937092 },
+  { fecha: '05-05-26', gid: 1425746571 },
+  { fecha: '06-05-26', gid: 1534934661 },
+  { fecha: '07-05-26', gid: 1929186148 },
+  { fecha: '08-05-26', gid: 1851077306 },
+  { fecha: '09-05-26', gid: 782079783 },
+  { fecha: '11-05-26', gid: 770270231 },
+  { fecha: '12-05-26', gid: 1958392492 },
+  { fecha: '13-05-26', gid: 1613207016 },
+  { fecha: '14-05-26', gid: 717980391 },
+  { fecha: '15-05-26', gid: 268050003 },
+  { fecha: '16-05-26', gid: 422174396 },
+  { fecha: '18-05-26', gid: 1356018131 },
+  { fecha: '19-05-26', gid: 1190443317 },
+  { fecha: '20-05-26', gid: 1609901699 },
+];
+
+// Columnas clave
+const C = {
+  LOGINS:    '#LOGINS',
+  GESTOR:    'NOMBRE_USR_ULT_PLAN',
+  CLIENTE:   'CLIENTE',
+  FE_PLAN:   'FE ULT PLAN',
+  LOGIN:     'LOGIN',
+  EST_SERV:  'ESTADO SERVICIO',
+  EST_SOL:   'ESTADO SOLICITUD',
+  MOTIVO:    'MOTIVO',
+  CONTRATO:  'ESTADO_CONTRATO',
+  EMPRESA:   'TIPO_EMPRESA',
+  FECHA:     'FECHA_SOLICITUD',
+  ENLACE:    'TIPO ENLACE',
+  CANTON:    'CANTÓN',
+  PRODUCTO:  'PRODUCTO',
+};
+
+const COLORS = ['#00c8ff','#ff2d78','#00e5a0','#ffb020','#a855f7','#ff8c00','#38bdf8','#f472b6','#34d399','#fbbf24'];
+const DARK_BG = 'rgba(0,200,255,0.04)';
+const GRID_COLOR = 'rgba(100,160,255,0.08)';
+
+// ── ESTADO GLOBAL ──────────────────────────────────────────────────
+let allData = [];       // [{_fecha, _gid, ...cols}]
+let filtered = [];
+let activeDate = 'all';
+let charts = {};
+let sheetStats = {};    // { 'DD-MM-YY': { total, plan, noplan } }
+
+// ── UTILIDADES ────────────────────────────────────────────────────
+function csvUrl(gid) {
+  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+}
+
+function parseCSV(text) {
+  const lines = text.split('\n').filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const headers = parseLine(lines[0]);
+  return lines.slice(1).map(line => {
+    const vals = parseLine(line);
+    const obj = {};
+    headers.forEach((h, i) => { obj[h.trim()] = (vals[i] || '').trim(); });
+    return obj;
+  }).filter(r => Object.values(r).some(v => v));
+}
+
+function parseLine(line) {
+  const vals = []; let cur = '', inQ = false;
+  for (const ch of line) {
+    if (ch === '"') inQ = !inQ;
+    else if (ch === ',' && !inQ) { vals.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  vals.push(cur);
+  return vals.map(v => v.replace(/^"|"$/g, '').trim());
+}
+
+function count(data, key) {
+  return data.reduce((a, r) => {
+    const v = r[key] || 'Sin dato';
+    a[v] = (a[v] || 0) + 1; return a;
+  }, {});
+}
+
+function topN(obj, n) {
+  return Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, n);
+}
+
+function isPlanificada(r) {
+  const s = (r[C.EST_SOL] || '').toUpperCase();
+  return s.includes('PLANIF') || s.includes('PLAN');
+}
+
+function getPill(val) {
+  const v = (val || '').toUpperCase();
+  if (v.includes('PLANIF')) return `<span class="pill pill-green">${val}</span>`;
+  if (v.includes('CANCEL')) return `<span class="pill pill-red">${val}</span>`;
+  if (v.includes('ACTIV'))  return `<span class="pill pill-green">${val}</span>`;
+  if (v.includes('PEND'))   return `<span class="pill pill-amber">${val}</span>`;
+  return `<span class="pill pill-gray">${val || '—'}</span>`;
+}
+
+// ── ESTADO UI ─────────────────────────────────────────────────────
+function setStatus(msg, state = 'loading', detail = '') {
+  document.getElementById('st-dot').className = 'dot ' + state;
+  document.getElementById('st-msg').textContent = msg;
+  document.getElementById('st-detail').textContent = detail;
+}
+
+function setProgress(done, total) {
+  const wrap = document.getElementById('prog-wrap');
+  wrap.style.display = total > 0 ? 'block' : 'none';
+  document.getElementById('prog-bar').style.width = (done / total * 100) + '%';
+}
+
+// ── FILTROS ───────────────────────────────────────────────────────
+function populateSelect(id, values) {
+  const sel = document.getElementById(id);
+  const cur = sel.value;
+  while (sel.options.length > 1) sel.remove(1);
+  [...new Set(values)].filter(Boolean).sort().forEach(v => {
+    const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o);
+  });
+  if (cur) sel.value = cur;
+}
+
+function applyFilters() {
+  const g = document.getElementById('fil-gestor').value;
+  const e = document.getElementById('fil-estado').value;
+  const t = document.getElementById('fil-empresa').value;
+  const m = document.getElementById('fil-motivo').value;
+  const l = document.getElementById('fil-enlace').value;
+
+  let pool = activeDate === 'all' ? allData : allData.filter(r => r._fecha === activeDate);
+
+  filtered = pool.filter(r =>
+    (!g || r[C.GESTOR]  === g) &&
+    (!e || r[C.EST_SOL] === e) &&
+    (!t || r[C.EMPRESA] === t) &&
+    (!m || r[C.MOTIVO]  === m) &&
+    (!l || r[C.ENLACE]  === l)
+  );
+  renderAll();
+}
+
+// ── DATE NAV ──────────────────────────────────────────────────────
+function buildDateNav(dates) {
+  const nav = document.getElementById('date-nav');
+  nav.innerHTML = '';
+
+  const all = document.createElement('button');
+  all.className = 'date-chip all' + (activeDate === 'all' ? ' active' : '');
+  all.textContent = 'Todas las fechas';
+  all.onclick = () => { activeDate = 'all'; buildDateNav(dates); applyFilters(); };
+  nav.appendChild(all);
+
+  dates.forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'date-chip' + (activeDate === d ? ' active' : '');
+    btn.textContent = d;
+    btn.onclick = () => { activeDate = d; buildDateNav(dates); applyFilters(); };
+    nav.appendChild(btn);
+  });
+}
+
+// ── RENDER KPIs ──────────────────────────────────────────────────
+function renderKPIs() {
+  const total     = filtered.length;
+  const gestores  = new Set(filtered.map(r => r[C.GESTOR]).filter(Boolean)).size;
+  const plan      = filtered.filter(isPlanificada).length;
+  const noplan    = total - plan;
+  const clientes  = new Set(filtered.map(r => r[C.CLIENTE]).filter(Boolean)).size;
+  const hojas     = new Set(filtered.map(r => r._fecha)).size;
+
+  document.getElementById('k-total').textContent    = total.toLocaleString('es-EC');
+  document.getElementById('k-gestores').textContent = gestores;
+  document.getElementById('k-plan').textContent     = plan.toLocaleString('es-EC');
+  document.getElementById('k-noplan').textContent   = noplan.toLocaleString('es-EC');
+  document.getElementById('k-clientes').textContent = clientes.toLocaleString('es-EC');
+  document.getElementById('k-hojas').textContent    = hojas;
+
+  const pct = total ? Math.round(plan / total * 100) : 0;
+  document.getElementById('k-plan-pct').textContent   = pct + '% del total';
+  document.getElementById('k-noplan-pct').textContent = (100 - pct) + '% del total';
+  document.getElementById('k-total-sub').textContent  = activeDate === 'all' ? 'consolidado · todas las fechas' : 'corte ' + activeDate;
+  document.getElementById('k-hojas-sub').textContent  = activeDate === 'all' ? 'en rango completo' : 'filtro activo';
+}
+
+// ── RENDER CHARTS ────────────────────────────────────────────────
+function mkChart(id, cfg) {
+  if (charts[id]) charts[id].destroy();
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  charts[id] = new Chart(canvas, cfg);
+}
+
+const TICK_STYLE = { color: '#3d5a8a', font: { size: 10, family: "'IBM Plex Mono', monospace" } };
+
+function renderChartHBar(id, entries, color) {
+  const labels = entries.map(([k]) => k.length > 22 ? k.slice(0, 20) + '…' : k);
+  const vals   = entries.map(([, v]) => v);
+  mkChart(id, {
+    type: 'bar',
+    data: { labels, datasets: [{ data: vals, backgroundColor: color + 'cc', borderColor: color, borderWidth: 1, borderRadius: 4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: GRID_COLOR }, ticks: TICK_STYLE },
+        y: { grid: { color: 'transparent' }, ticks: { ...TICK_STYLE, color: '#7a9acd' } }
+      }
+    }
+  });
+}
+
+function renderChartDoughnut(id, entries, legendId) {
+  const labels = entries.map(([k]) => k);
+  const vals   = entries.map(([, v]) => v);
+  const colors = COLORS.slice(0, entries.length);
+  const total  = vals.reduce((a, b) => a + b, 0);
+
+  if (legendId) {
+    document.getElementById(legendId).innerHTML = labels.map((l, i) =>
+      `<div class="legend-item"><span class="legend-sq" style="background:${colors[i]}"></span>${l.length > 16 ? l.slice(0,14)+'…' : l} · ${Math.round(vals[i]/total*100)}%</div>`
+    ).join('');
+  }
+  mkChart(id, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: vals, backgroundColor: colors.map(c => c + 'cc'), borderColor: colors, borderWidth: 1 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '62%',
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+function renderTendencia() {
+  const dates = KNOWN_SHEETS.map(s => s.fecha).filter(d => sheetStats[d]);
+  const totales = dates.map(d => sheetStats[d].total);
+  const planif  = dates.map(d => sheetStats[d].plan);
+  const noplan  = dates.map(d => sheetStats[d].noplan);
+
+  mkChart('ch-tendencia', {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: [
+        { label: 'Total', data: totales, borderColor: '#00c8ff', backgroundColor: 'rgba(0,200,255,0.07)', tension: 0.3, pointRadius: 4, fill: true, borderWidth: 2 },
+        { label: 'Planificadas', data: planif, borderColor: '#00e5a0', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3, borderWidth: 1.5, borderDash: [] },
+        { label: 'Sin planificar', data: noplan, borderColor: '#ff4466', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3, borderWidth: 1.5, borderDash: [4,3] },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: GRID_COLOR }, ticks: { ...TICK_STYLE, maxRotation: 45, autoSkip: false } },
+        y: { grid: { color: GRID_COLOR }, ticks: TICK_STYLE }
+      }
+    }
+  });
+}
+
+// ── RENDER TABLE GESTORES ─────────────────────────────────────────
+function renderTableGestores() {
+  const map = {};
+  filtered.forEach(r => {
+    const g = r[C.GESTOR] || 'Sin gestor';
+    if (!map[g]) map[g] = { total: 0, plan: 0, noplan: 0, clientes: new Set(), enlaces: {}, fechas: [] };
+    map[g].total++;
+    if (isPlanificada(r)) map[g].plan++; else map[g].noplan++;
+    if (r[C.CLIENTE]) map[g].clientes.add(r[C.CLIENTE]);
+    const en = r[C.ENLACE] || 'N/D';
+    map[g].enlaces[en] = (map[g].enlaces[en] || 0) + 1;
+    if (r[C.FE_PLAN]) map[g].fechas.push(r[C.FE_PLAN]);
+  });
+
+  const rows = Object.entries(map).sort((a, b) => b[1].total - a[1].total);
+  const maxTotal = rows[0]?.[1]?.total || 1;
+  document.getElementById('table-count').textContent = rows.length + ' gestores';
+
+  document.getElementById('tbl-body').innerHTML = rows.length ? rows.map(([g, d], i) => {
+    const pct   = Math.round(d.plan / d.total * 100);
+    const barW  = Math.round(d.total / maxTotal * 80);
+    const enlace = Object.entries(d.enlaces).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
+    const ultF  = d.fechas.sort().pop() || '—';
+    const pillPct = pct >= 70 ? 'pill-green' : pct >= 40 ? 'pill-amber' : 'pill-red';
+    return `<tr>
+      <td style="color:var(--text3);font-family:var(--mono)">${i+1}</td>
+      <td style="font-weight:500;max-width:180px;overflow:hidden;text-overflow:ellipsis">${g}</td>
+      <td style="font-family:var(--mono)">${d.total} <span class="bar-mini" style="width:${barW}px;margin-left:4px"></span></td>
+      <td>${getPill('Planificada')} ${d.plan}</td>
+      <td><span class="pill pill-red">Sin planif.</span> ${d.noplan}</td>
+      <td><span class="pill ${pillPct}">${pct}%</span></td>
+      <td style="font-family:var(--mono)">${d.clientes.size}</td>
+      <td style="color:var(--text2);font-size:11px">${enlace}</td>
+      <td style="color:var(--text3);font-family:var(--mono);font-size:11px">${ultF}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="9" class="empty">Sin datos para los filtros seleccionados</td></tr>`;
+}
+
+// ── RENDER TABLE CLIENTES ─────────────────────────────────────────
+function renderTableClientes() {
+  const map = {};
+  filtered.forEach(r => {
+    const c = r[C.CLIENTE] || 'Sin cliente';
+    if (!map[c]) map[c] = { total: 0, empresa: r[C.EMPRESA] || '—', estados: {} };
+    map[c].total++;
+    const s = r[C.EST_SOL] || 'N/D';
+    map[c].estados[s] = (map[c].estados[s] || 0) + 1;
+  });
+
+  const rows = Object.entries(map).sort((a, b) => b[1].total - a[1].total).slice(0, 15);
+  const maxT = rows[0]?.[1]?.total || 1;
+
+  document.getElementById('tbl-clientes').innerHTML = rows.length ? rows.map(([c, d], i) => {
+    const topEst = Object.entries(d.estados).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
+    const barW = Math.round(d.total / maxT * 100);
+    return `<tr>
+      <td style="color:var(--text3);font-family:var(--mono)">${i+1}</td>
+      <td style="font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis">${c}</td>
+      <td style="font-family:var(--mono)">${d.total}</td>
+      <td style="font-size:11px;color:var(--text2)">${d.empresa}</td>
+      <td>${getPill(topEst)}</td>
+      <td><div style="display:flex;align-items:center;gap:6px"><div style="height:4px;width:${barW}px;background:var(--accent);border-radius:99px;opacity:.7"></div><span style="font-size:10px;color:var(--text3)">${d.total}</span></div></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="6" class="empty">Sin datos</td></tr>`;
+}
+
+// ── RENDER ALL ────────────────────────────────────────────────────
+function renderAll() {
+  renderKPIs();
+
+  const gestData = topN(count(filtered, C.GESTOR), 10);
+  renderChartHBar('ch-gestores', gestData, '#3d8ef0');
+
+  const estData = topN(count(filtered, C.EST_SOL), 8);
+  renderChartDoughnut('ch-estado', estData, 'leg-estado');
+
+  const motData = topN(count(filtered, C.MOTIVO), 10);
+  renderChartHBar('ch-motivo', motData, '#2abfb0');
+
+  const empData = topN(count(filtered, C.EMPRESA), 8);
+  renderChartDoughnut('ch-empresa', empData, 'leg-empresa');
+
+  renderTendencia();
+  renderTableGestores();
+  renderTableClientes();
+}
+
+// ── CARGA DE DATOS ────────────────────────────────────────────────
+async function fetchSheet(sheet) {
+  const url = csvUrl(sheet.gid);
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  const text = await resp.text();
+  const rows = parseCSV(text);
+  return rows.map(r => ({ ...r, _fecha: sheet.fecha, _gid: sheet.gid }));
+}
+
+async function loadAll() {
+  allData = [];
+  sheetStats = {};
+  activeDate = 'all';
+  setStatus('Cargando hojas...', 'loading');
+  setProgress(0, KNOWN_SHEETS.length);
+  document.getElementById('prog-wrap').style.display = 'block';
+
+  let loaded = 0, errors = 0;
+  const results = await Promise.allSettled(KNOWN_SHEETS.map(s => fetchSheet(s)));
+
+  results.forEach((res, i) => {
+    const sheet = KNOWN_SHEETS[i];
+    if (res.status === 'fulfilled') {
+      const rows = res.value;
+      allData.push(...rows);
+      sheetStats[sheet.fecha] = {
+        total: rows.length,
+        plan:  rows.filter(isPlanificada).length,
+        noplan: rows.filter(r => !isPlanificada(r)).length
+      };
+      loaded++;
+    } else {
+      errors++;
+      console.warn('Error en hoja', sheet.fecha, res.reason);
+    }
+    setProgress(loaded + errors, KNOWN_SHEETS.length);
+    document.getElementById('st-detail').textContent = `${loaded}/${KNOWN_SHEETS.length} hojas`;
+  });
+
+  const dates = KNOWN_SHEETS.filter(s => sheetStats[s.fecha]).map(s => s.fecha);
+  buildDateNav(dates);
+
+  populateSelect('fil-gestor',  allData.map(r => r[C.GESTOR]));
+  populateSelect('fil-estado',  allData.map(r => r[C.EST_SOL]));
+  populateSelect('fil-empresa', allData.map(r => r[C.EMPRESA]));
+  populateSelect('fil-motivo',  allData.map(r => r[C.MOTIVO]));
+  populateSelect('fil-enlace',  allData.map(r => r[C.ENLACE]));
+
+  filtered = [...allData];
+  renderAll();
+
+  const now = new Date().toLocaleString('es-EC');
+  document.getElementById('last-update').textContent = new Date().toLocaleDateString('es-EC',{day:'2-digit',month:'short',year:'2-digit'});
+  document.getElementById('footer-txt').textContent =
+    `GTN Proyectos e Implementación · PEI PENDIENTES · ${allData.length.toLocaleString('es-EC')} registros · ${loaded} hojas · Actualizado: ${now}`;
+
+  if (errors === 0) {
+    setStatus(`${loaded} hojas cargadas correctamente`, 'ok', allData.length.toLocaleString('es-EC') + ' registros totales');
+  } else {
+    setStatus(`${loaded} hojas cargadas · ${errors} con error`, errors === KNOWN_SHEETS.length ? 'error' : 'loading',
+      allData.length.toLocaleString('es-EC') + ' registros');
+  }
+  setProgress(0, 0);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+loadAll();
+</script>
+</body>
+</html>
