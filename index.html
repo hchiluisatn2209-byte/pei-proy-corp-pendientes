@@ -116,6 +116,7 @@
   .pill-green { background: rgba(0,229,160,0.12); color: #00e5a0; border: 1px solid rgba(0,229,160,0.25); }
   .pill-red   { background: rgba(255,68,102,0.12);  color: #ff4466; border: 1px solid rgba(255,68,102,0.25); }
   .pill-amber { background: rgba(255,176,32,0.12); color: #ffb020; border: 1px solid rgba(255,176,32,0.25); }
+  .pill-cyan  { background: rgba(0,200,255,0.12); color: #00c8ff; border: 1px solid rgba(0,200,255,0.25); }
   .pill-gray  { background: rgba(100,130,180,0.12); color: var(--text2); border: 1px solid var(--border2); }
   .bar-mini { height: 3px; border-radius: 99px; background: var(--accent2); display: inline-block; vertical-align: middle; opacity: .7; }
 
@@ -194,7 +195,7 @@
   </div>
 
   <!-- KPIs -->
-  <div class="section-label" style="margin-bottom:10px">Indicadores clave</div>
+  <div class="section-label" style="margin-bottom:10px">Indicadores clave · Estado Servicio</div>
   <div class="kpi-grid">
     <div class="kpi" style="--kpi-color:var(--accent)">
       <div class="kpi-label">Total órdenes</div>
@@ -203,22 +204,34 @@
       <div class="kpi-icon">📋</div>
     </div>
     <div class="kpi" style="--kpi-color:var(--purple)">
-      <div class="kpi-label">Gestores activos</div>
+      <div class="kpi-label">Gestores con carga</div>
       <div class="kpi-value" id="k-gestores">—</div>
-      <div class="kpi-sub">con órdenes asignadas</div>
+      <div class="kpi-sub">Plan · Det · Replan · Asig</div>
       <div class="kpi-icon">👤</div>
     </div>
     <div class="kpi" style="--kpi-color:var(--green)">
-      <div class="kpi-label">Planificadas</div>
+      <div class="kpi-label">Planificada</div>
       <div class="kpi-value" id="k-plan">—</div>
-      <div class="kpi-sub" id="k-plan-pct">del total</div>
-      <div class="kpi-icon">✅</div>
+      <div class="kpi-sub" id="k-plan-pct">coordinó actividad</div>
+      <div class="kpi-icon">📅</div>
     </div>
     <div class="kpi" style="--kpi-color:var(--red)">
-      <div class="kpi-label">Sin planificar</div>
-      <div class="kpi-value" id="k-noplan">—</div>
-      <div class="kpi-sub" id="k-noplan-pct">del total</div>
-      <div class="kpi-icon">⚠</div>
+      <div class="kpi-label">Detenido</div>
+      <div class="kpi-value" id="k-detenido">—</div>
+      <div class="kpi-sub" id="k-detenido-pct">cliente detuvo</div>
+      <div class="kpi-icon">⛔</div>
+    </div>
+    <div class="kpi" style="--kpi-color:var(--amber)">
+      <div class="kpi-label">Replanificada</div>
+      <div class="kpi-value" id="k-replan">—</div>
+      <div class="kpi-sub" id="k-replan-pct">no avanzó por empresa</div>
+      <div class="kpi-icon">🔄</div>
+    </div>
+    <div class="kpi" style="--kpi-color:var(--accent)">
+      <div class="kpi-label">AsignadoTarea</div>
+      <div class="kpi-value" id="k-asignado">—</div>
+      <div class="kpi-sub" id="k-asignado-pct">listo a ejecutar</div>
+      <div class="kpi-icon">✅</div>
     </div>
     <div class="kpi" style="--kpi-color:var(--amber)">
       <div class="kpi-label">Clientes únicos</div>
@@ -230,7 +243,7 @@
       <div class="kpi-label">Hojas cargadas</div>
       <div class="kpi-value" id="k-hojas">—</div>
       <div class="kpi-sub" id="k-hojas-sub">fechas disponibles</div>
-      <div class="kpi-icon">📅</div>
+      <div class="kpi-icon">🗂</div>
     </div>
   </div>
 
@@ -278,9 +291,11 @@
       <div class="card-title">Evolución diaria de órdenes pendientes</div>
       <div class="card-sub">N° de registros por fecha de corte · todas las hojas cargadas</div>
       <div class="legend-row">
-        <div class="legend-item"><span class="legend-sq" style="background:var(--accent)"></span>Total órdenes</div>
-        <div class="legend-item"><span class="legend-sq" style="background:var(--green)"></span>Planificadas</div>
-        <div class="legend-item"><span class="legend-sq" style="background:var(--red)"></span>Sin planificar</div>
+        <div class="legend-item"><span class="legend-sq" style="background:var(--accent)"></span>Total</div>
+        <div class="legend-item"><span class="legend-sq" style="background:var(--green)"></span>Planificada</div>
+        <div class="legend-item"><span class="legend-sq" style="background:var(--red)"></span>Detenido</div>
+        <div class="legend-item"><span class="legend-sq" style="background:var(--amber)"></span>Replanificada</div>
+        <div class="legend-item"><span class="legend-sq" style="background:var(--purple)"></span>AsignadoTarea</div>
       </div>
       <div style="position:relative;width:100%;height:220px">
         <canvas id="ch-tendencia" role="img" aria-label="Evolución diaria de órdenes">Cargando...</canvas>
@@ -303,12 +318,12 @@
         <tr>
           <th>#</th>
           <th>Gestor</th>
-          <th>Órdenes</th>
-          <th>Planificadas</th>
-          <th>Sin planif.</th>
-          <th>% cumpl.</th>
+          <th>Carga total</th>
+          <th>Planificada</th>
+          <th>Detenido</th>
+          <th>Replanificada</th>
+          <th>AsignadoTarea</th>
           <th>Clientes</th>
-          <th>Tipo enlace principal</th>
           <th>Últ. plan</th>
         </tr>
       </thead>
@@ -439,17 +454,53 @@ function topN(obj, n) {
   return Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, n);
 }
 
-function isPlanificada(r) {
-  const s = (r[C.EST_SOL] || '').toUpperCase();
-  return s.includes('PLANIF') || s.includes('PLAN');
+// ── CLASIFICACIÓN DE ESTADOS SERVICIO ─────────────────────────────
+// Carga activa del gestor: Planificada | Detenido | Replanificada | AsignadoTarea
+// Sin gestor aún: PrePlanificada
+// Listo para ejecutar: AsignadoTarea (subconjunto especial)
+
+const EST = {
+  PLANIFICADA:   'Planificada',
+  DETENIDO:      'Detenido',
+  REPLANIFICADA: 'Replanificada',
+  ASIGNADO:      'AsignadoTarea',
+  PREPLAN:       'PrePlanificada',
+};
+
+function getEstado(r) {
+  return (r[C.EST_SERV] || '').trim();
 }
 
+function tieneCargaGestor(r) {
+  const e = getEstado(r);
+  return [EST.PLANIFICADA, EST.DETENIDO, EST.REPLANIFICADA, EST.ASIGNADO].includes(e);
+}
+
+function esPlanificada(r)    { return getEstado(r) === EST.PLANIFICADA; }
+function esDetenido(r)       { return getEstado(r) === EST.DETENIDO; }
+function esReplanificada(r)  { return getEstado(r) === EST.REPLANIFICADA; }
+function esAsignado(r)       { return getEstado(r) === EST.ASIGNADO; }
+function esPrePlanificada(r) { return getEstado(r) === EST.PREPLAN; }
+
+// Color y pill por estado
+const ESTADO_CFG = {
+  [EST.PLANIFICADA]:   { pill: 'pill-green',  color: '#00e5a0', label: 'Planificada' },
+  [EST.DETENIDO]:      { pill: 'pill-red',    color: '#ff4466', label: 'Detenido' },
+  [EST.REPLANIFICADA]: { pill: 'pill-amber',  color: '#ffb020', label: 'Replanificada' },
+  [EST.ASIGNADO]:      { pill: 'pill-cyan',   color: '#00c8ff', label: 'AsignadoTarea' },
+  [EST.PREPLAN]:       { pill: 'pill-gray',   color: '#7a9acd', label: 'PrePlanificada' },
+};
+
 function getPill(val) {
+  const cfg = ESTADO_CFG[val];
+  if (cfg) return `<span class="pill ${cfg.pill}">${val}</span>`;
   const v = (val || '').toUpperCase();
-  if (v.includes('PLANIF')) return `<span class="pill pill-green">${val}</span>`;
-  if (v.includes('CANCEL')) return `<span class="pill pill-red">${val}</span>`;
-  if (v.includes('ACTIV'))  return `<span class="pill pill-green">${val}</span>`;
-  if (v.includes('PEND'))   return `<span class="pill pill-amber">${val}</span>`;
+  if (v.includes('PLANIF'))  return `<span class="pill pill-green">${val}</span>`;
+  if (v.includes('CANCEL'))  return `<span class="pill pill-red">${val}</span>`;
+  if (v.includes('ACTIV'))   return `<span class="pill pill-green">${val}</span>`;
+  if (v.includes('DETENID')) return `<span class="pill pill-red">${val}</span>`;
+  if (v.includes('REPLAN'))  return `<span class="pill pill-amber">${val}</span>`;
+  if (v.includes('ASIGNAD')) return `<span class="pill pill-cyan">${val}</span>`;
   return `<span class="pill pill-gray">${val || '—'}</span>`;
 }
 
@@ -487,11 +538,11 @@ function applyFilters() {
   let pool = activeDate === 'all' ? allData : allData.filter(r => r._fecha === activeDate);
 
   filtered = pool.filter(r =>
-    (!g || r[C.GESTOR]  === g) &&
-    (!e || r[C.EST_SOL] === e) &&
-    (!t || r[C.EMPRESA] === t) &&
-    (!m || r[C.MOTIVO]  === m) &&
-    (!l || r[C.ENLACE]  === l)
+    (!g || r[C.GESTOR]   === g) &&
+    (!e || r[C.EST_SERV] === e) &&
+    (!t || r[C.EMPRESA]  === t) &&
+    (!m || r[C.MOTIVO]   === m) &&
+    (!l || r[C.ENLACE]   === l)
   );
   renderAll();
 }
@@ -518,23 +569,31 @@ function buildDateNav(dates) {
 
 // ── RENDER KPIs ──────────────────────────────────────────────────
 function renderKPIs() {
-  const total     = filtered.length;
-  const gestores  = new Set(filtered.map(r => r[C.GESTOR]).filter(Boolean)).size;
-  const plan      = filtered.filter(isPlanificada).length;
-  const noplan    = total - plan;
-  const clientes  = new Set(filtered.map(r => r[C.CLIENTE]).filter(Boolean)).size;
-  const hojas     = new Set(filtered.map(r => r._fecha)).size;
+  const total        = filtered.length;
+  const conCarga     = filtered.filter(tieneCargaGestor);
+  const gestores     = new Set(conCarga.map(r => r[C.GESTOR]).filter(Boolean)).size;
+  const planificadas = filtered.filter(esPlanificada).length;
+  const detenidos    = filtered.filter(esDetenido).length;
+  const replanif     = filtered.filter(esReplanificada).length;
+  const asignados    = filtered.filter(esAsignado).length;
+  const preplan      = filtered.filter(esPrePlanificada).length;
+  const clientes     = new Set(filtered.map(r => r[C.CLIENTE]).filter(Boolean)).size;
+  const hojas        = new Set(filtered.map(r => r._fecha)).size;
 
   document.getElementById('k-total').textContent    = total.toLocaleString('es-EC');
   document.getElementById('k-gestores').textContent = gestores;
-  document.getElementById('k-plan').textContent     = plan.toLocaleString('es-EC');
-  document.getElementById('k-noplan').textContent   = noplan.toLocaleString('es-EC');
+  document.getElementById('k-plan').textContent     = planificadas.toLocaleString('es-EC');
+  document.getElementById('k-detenido').textContent = detenidos.toLocaleString('es-EC');
+  document.getElementById('k-replan').textContent   = replanif.toLocaleString('es-EC');
+  document.getElementById('k-asignado').textContent = asignados.toLocaleString('es-EC');
   document.getElementById('k-clientes').textContent = clientes.toLocaleString('es-EC');
   document.getElementById('k-hojas').textContent    = hojas;
 
-  const pct = total ? Math.round(plan / total * 100) : 0;
-  document.getElementById('k-plan-pct').textContent   = pct + '% del total';
-  document.getElementById('k-noplan-pct').textContent = (100 - pct) + '% del total';
+  const pctPlan = total ? Math.round(planificadas / total * 100) : 0;
+  document.getElementById('k-plan-pct').textContent    = pctPlan + '% del total';
+  document.getElementById('k-detenido-pct').textContent = (total ? Math.round(detenidos/total*100) : 0) + '% del total';
+  document.getElementById('k-replan-pct').textContent   = (total ? Math.round(replanif/total*100) : 0) + '% del total';
+  document.getElementById('k-asignado-pct').textContent = (total ? Math.round(asignados/total*100) : 0) + '% · listos a ejecutar';
   document.getElementById('k-total-sub').textContent  = activeDate === 'all' ? 'consolidado · todas las fechas' : 'corte ' + activeDate;
   document.getElementById('k-hojas-sub').textContent  = activeDate === 'all' ? 'en rango completo' : 'filtro activo';
 }
@@ -588,10 +647,12 @@ function renderChartDoughnut(id, entries, legendId) {
 }
 
 function renderTendencia() {
-  const dates = KNOWN_SHEETS.map(s => s.fecha).filter(d => sheetStats[d]);
-  const totales = dates.map(d => sheetStats[d].total);
-  const planif  = dates.map(d => sheetStats[d].plan);
-  const noplan  = dates.map(d => sheetStats[d].noplan);
+  const dates    = KNOWN_SHEETS.map(s => s.fecha).filter(d => sheetStats[d]);
+  const totales  = dates.map(d => sheetStats[d].total);
+  const planif   = dates.map(d => sheetStats[d].planificadas);
+  const detenid  = dates.map(d => sheetStats[d].detenidos);
+  const replan   = dates.map(d => sheetStats[d].replanificadas);
+  const asignad  = dates.map(d => sheetStats[d].asignados);
 
   mkChart('ch-tendencia', {
     type: 'line',
@@ -599,8 +660,10 @@ function renderTendencia() {
       labels: dates,
       datasets: [
         { label: 'Total', data: totales, borderColor: '#00c8ff', backgroundColor: 'rgba(0,200,255,0.07)', tension: 0.3, pointRadius: 4, fill: true, borderWidth: 2 },
-        { label: 'Planificadas', data: planif, borderColor: '#00e5a0', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3, borderWidth: 1.5, borderDash: [] },
-        { label: 'Sin planificar', data: noplan, borderColor: '#ff4466', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3, borderWidth: 1.5, borderDash: [4,3] },
+        { label: 'Planificada', data: planif,  borderColor: '#00e5a0', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3, borderWidth: 1.5 },
+        { label: 'Detenido',    data: detenid, borderColor: '#ff4466', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3, borderWidth: 1.5, borderDash: [4,3] },
+        { label: 'Replanificada', data: replan, borderColor: '#ffb020', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3, borderWidth: 1.5, borderDash: [2,3] },
+        { label: 'AsignadoTarea', data: asignad, borderColor: '#a855f7', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3, borderWidth: 1.5 },
       ]
     },
     options: {
@@ -618,14 +681,25 @@ function renderTendencia() {
 function renderTableGestores() {
   const map = {};
   filtered.forEach(r => {
-    const g = r[C.GESTOR] || 'Sin gestor';
-    if (!map[g]) map[g] = { total: 0, plan: 0, noplan: 0, clientes: new Set(), enlaces: {}, fechas: [] };
-    map[g].total++;
-    if (isPlanificada(r)) map[g].plan++; else map[g].noplan++;
-    if (r[C.CLIENTE]) map[g].clientes.add(r[C.CLIENTE]);
+    // Solo gestores con carga activa (excluye PrePlanificada que no tiene gestor)
+    const g = r[C.GESTOR] || '';
+    const est = getEstado(r);
+    // Incluir todos los registros en la tabla pero marcar los que tienen gestor
+    const key = g || '— Sin gestor (PrePlanificada)';
+    if (!map[key]) map[key] = {
+      total: 0, planificada: 0, detenido: 0, replanificada: 0, asignado: 0, preplan: 0,
+      clientes: new Set(), enlaces: {}, fechas: [], tieneGestor: !!g
+    };
+    map[key].total++;
+    if (esPlanificada(r))   map[key].planificada++;
+    if (esDetenido(r))      map[key].detenido++;
+    if (esReplanificada(r)) map[key].replanificada++;
+    if (esAsignado(r))      map[key].asignado++;
+    if (esPrePlanificada(r))map[key].preplan++;
+    if (r[C.CLIENTE]) map[key].clientes.add(r[C.CLIENTE]);
     const en = r[C.ENLACE] || 'N/D';
-    map[g].enlaces[en] = (map[g].enlaces[en] || 0) + 1;
-    if (r[C.FE_PLAN]) map[g].fechas.push(r[C.FE_PLAN]);
+    map[key].enlaces[en] = (map[key].enlaces[en] || 0) + 1;
+    if (r[C.FE_PLAN]) map[key].fechas.push(r[C.FE_PLAN]);
   });
 
   const rows = Object.entries(map).sort((a, b) => b[1].total - a[1].total);
@@ -633,20 +707,20 @@ function renderTableGestores() {
   document.getElementById('table-count').textContent = rows.length + ' gestores';
 
   document.getElementById('tbl-body').innerHTML = rows.length ? rows.map(([g, d], i) => {
-    const pct   = Math.round(d.plan / d.total * 100);
-    const barW  = Math.round(d.total / maxTotal * 80);
+    const cargaTotal = d.planificada + d.detenido + d.replanificada + d.asignado;
+    const barW = Math.round(cargaTotal / maxTotal * 80);
     const enlace = Object.entries(d.enlaces).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
-    const ultF  = d.fechas.sort().pop() || '—';
-    const pillPct = pct >= 70 ? 'pill-green' : pct >= 40 ? 'pill-amber' : 'pill-red';
-    return `<tr>
+    const ultF   = d.fechas.sort().pop() || '—';
+    const rowStyle = d.tieneGestor ? '' : 'opacity:.6;font-style:italic';
+    return `<tr style="${rowStyle}">
       <td style="color:var(--text3);font-family:var(--mono)">${i+1}</td>
-      <td style="font-weight:500;max-width:180px;overflow:hidden;text-overflow:ellipsis">${g}</td>
-      <td style="font-family:var(--mono)">${d.total} <span class="bar-mini" style="width:${barW}px;margin-left:4px"></span></td>
-      <td>${getPill('Planificada')} ${d.plan}</td>
-      <td><span class="pill pill-red">Sin planif.</span> ${d.noplan}</td>
-      <td><span class="pill ${pillPct}">${pct}%</span></td>
+      <td style="font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis">${g}</td>
+      <td style="font-family:var(--mono);color:var(--accent)">${cargaTotal} <span class="bar-mini" style="width:${barW}px;margin-left:4px"></span></td>
+      <td><span class="pill pill-green">${d.planificada}</span></td>
+      <td><span class="pill pill-red">${d.detenido}</span></td>
+      <td><span class="pill pill-amber">${d.replanificada}</span></td>
+      <td><span class="pill pill-cyan">${d.asignado}</span></td>
       <td style="font-family:var(--mono)">${d.clientes.size}</td>
-      <td style="color:var(--text2);font-size:11px">${enlace}</td>
       <td style="color:var(--text3);font-family:var(--mono);font-size:11px">${ultF}</td>
     </tr>`;
   }).join('') : `<tr><td colspan="9" class="empty">Sin datos para los filtros seleccionados</td></tr>`;
@@ -659,7 +733,7 @@ function renderTableClientes() {
     const c = r[C.CLIENTE] || 'Sin cliente';
     if (!map[c]) map[c] = { total: 0, empresa: r[C.EMPRESA] || '—', estados: {} };
     map[c].total++;
-    const s = r[C.EST_SOL] || 'N/D';
+    const s = getEstado(r) || 'N/D';
     map[c].estados[s] = (map[c].estados[s] || 0) + 1;
   });
 
@@ -684,14 +758,14 @@ function renderTableClientes() {
 function renderAll() {
   renderKPIs();
 
-  const gestData = topN(count(filtered, C.GESTOR), 10);
-  renderChartHBar('ch-gestores', gestData, '#3d8ef0');
+  const gestData = topN(count(filtered.filter(tieneCargaGestor), C.GESTOR), 10);
+  renderChartHBar('ch-gestores', gestData, '#00c8ff');
 
-  const estData = topN(count(filtered, C.EST_SOL), 8);
+  const estData = topN(count(filtered, C.EST_SERV), 8);
   renderChartDoughnut('ch-estado', estData, 'leg-estado');
 
   const motData = topN(count(filtered, C.MOTIVO), 10);
-  renderChartHBar('ch-motivo', motData, '#2abfb0');
+  renderChartHBar('ch-motivo', motData, '#00e5a0');
 
   const empData = topN(count(filtered, C.EMPRESA), 8);
   renderChartDoughnut('ch-empresa', empData, 'leg-empresa');
@@ -728,9 +802,12 @@ async function loadAll() {
       const rows = res.value;
       allData.push(...rows);
       sheetStats[sheet.fecha] = {
-        total: rows.length,
-        plan:  rows.filter(isPlanificada).length,
-        noplan: rows.filter(r => !isPlanificada(r)).length
+        total:          rows.length,
+        planificadas:   rows.filter(esPlanificada).length,
+        detenidos:      rows.filter(esDetenido).length,
+        replanificadas: rows.filter(esReplanificada).length,
+        asignados:      rows.filter(esAsignado).length,
+        preplan:        rows.filter(esPrePlanificada).length,
       };
       loaded++;
     } else {
@@ -745,7 +822,7 @@ async function loadAll() {
   buildDateNav(dates);
 
   populateSelect('fil-gestor',  allData.map(r => r[C.GESTOR]));
-  populateSelect('fil-estado',  allData.map(r => r[C.EST_SOL]));
+  populateSelect('fil-estado',  allData.map(r => r[C.EST_SERV]));
   populateSelect('fil-empresa', allData.map(r => r[C.EMPRESA]));
   populateSelect('fil-motivo',  allData.map(r => r[C.MOTIVO]));
   populateSelect('fil-enlace',  allData.map(r => r[C.ENLACE]));
