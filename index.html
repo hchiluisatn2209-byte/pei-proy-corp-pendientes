@@ -482,6 +482,7 @@ const EST_PILL={Planificada:'p-plan',Detenido:'p-det',Replanificada:'p-replan',A
 
 // ── ESTADO ─────────────────────────────────────────────────────────────
 let allData=[],filtered=[],charts={},sheetStats={};
+let _hayFiltroCorteSingle = false; // true cuando el usuario filtra por UN corte específico
 
 // ── UTILS ──────────────────────────────────────────────────────────────
 // ── URLS ───────────────────────────────────────────────────────────────
@@ -770,15 +771,21 @@ function applyFilters(){
     (!lg || lg.has(r[C.LOGIN]))&&
     (!f  || f.has(r._fecha))
   );
-  // Mostrar nota si hay filtro de corte activo
+  // Si hay filtro de corte → mostrar la hoja tal cual (sin deduplicar)
+  // Si no hay filtro de corte → deduplicar entre hojas para evitar doble conteo
+  _hayFiltroCorteSingle = f !== null && f.size > 0;
   const notaCorte = document.getElementById('nota-corte');
-  if(notaCorte) notaCorte.style.display = f ? '' : 'none';
+  if(notaCorte) notaCorte.style.display = _hayFiltroCorteSingle ? '' : 'none';
   renderAll();
 }
 
 function clearFilters(){
   Object.keys(SF).forEach(id => { if(SF[id]) SF[id].selected.clear(); sfRenderChips(id); sfRenderList(id,''); });
-  filtered=[...allData]; renderAll();
+  filtered=[...allData];
+  _hayFiltroCorteSingle = false;
+  const notaCorte = document.getElementById('nota-corte');
+  if(notaCorte) notaCorte.style.display = 'none';
+  renderAll();
 }
 
 // ── DEDUPLICACIÓN CENTRAL ─────────────────────────────────────────────
@@ -786,6 +793,12 @@ function clearFilters(){
 // Si un mismo login aparece en hojas del 01-05, 08-05 y 21-05,
 // solo cuenta la fila del 21-05 (último corte disponible en filtered).
 function getDedupData(data){
+  // Si el usuario filtró por corte específico: mostrar todos los registros de esa hoja
+  // (un login puede tener varias órdenes en el mismo corte = filas distintas)
+  if(_hayFiltroCorteSingle) return data;
+
+  // Sin filtro de corte: deduplicar por login → solo el corte más reciente
+  // evita contar el mismo login múltiples veces entre hojas
   const loginLatest = {};
   data.forEach(r => {
     const login = r[C.LOGIN];
@@ -793,7 +806,6 @@ function getDedupData(data){
     const prev = loginLatest[login];
     if(!prev || r._fecha > prev._fecha) loginLatest[login] = r;
   });
-  // Registros sin login se incluyen tal cual (no tienen duplicados por login)
   const sinLogin = data.filter(r => !r[C.LOGIN]);
   return Object.values(loginLatest).concat(sinLogin);
 }
