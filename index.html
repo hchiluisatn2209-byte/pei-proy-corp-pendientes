@@ -1359,15 +1359,24 @@ function mostrarPanelConfig(){
 }
 
 async function fetchSheet(s){
-  if(!APPS_SCRIPT_URL){
-    throw new Error('Sin configurar');
-  }
+  if(!APPS_SCRIPT_URL) throw new Error('Sin configurar');
   const url = appsScriptUrl(s.gid);
-  const r = await fetch(url, {cache:'no-cache', redirect:'follow'});
-  if(!r.ok) throw new Error('HTTP '+r.status);
-  const txt = await r.text();
-  if(!txt || txt.trim().length < 10 || txt.includes('Error:')) throw new Error('Sin datos: '+txt.slice(0,50));
-  return parseCSV(txt).map(row=>({...row, _fecha:s.fecha, _gid:s.gid}));
+  // Timeout de 55 segundos por hoja (Apps Script tiene límite de 30s de ejecución)
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 55000);
+  try {
+    const r = await fetch(url, {cache:'no-cache', redirect:'follow', signal: controller.signal});
+    clearTimeout(timer);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const txt = await r.text();
+    if(!txt || txt.trim().length < 10) throw new Error('Vacío');
+    if(txt.startsWith('Error:')) throw new Error(txt.slice(0,80));
+    return parseCSV(txt).map(row=>({...row, _fecha:s.fecha, _gid:s.gid}));
+  } catch(err) {
+    clearTimeout(timer);
+    if(err.name === 'AbortError') throw new Error('Timeout (>55s)');
+    throw err;
+  }
 }
 
 // ── RENDER ALL ──────────────────────────────────────────────────────────
