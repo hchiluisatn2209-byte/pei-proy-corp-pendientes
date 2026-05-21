@@ -133,6 +133,19 @@ tr:hover td{background:rgba(0,176,240,.05)}
 .leg-sq{width:8px;height:8px;border-radius:2px;flex-shrink:0}
 
 .empty{text-align:center;padding:2rem;color:var(--muted);font-size:12px;font-family:var(--font-cond);letter-spacing:1px}
+/* ── DETALLE EXPANDIBLE ── */
+.gc-toggle{display:flex;align-items:center;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);cursor:pointer;font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);transition:color .15s;user-select:none}
+.gc-toggle:hover{color:var(--turquesa)}
+.gc-toggle-arrow{font-size:10px;transition:transform .25s;display:inline-block}
+.gc-toggle.open .gc-toggle-arrow{transform:rotate(180deg)}
+.gc-detail{display:none;margin-top:10px;overflow-x:auto}
+.gc-detail.open{display:block}
+.gc-detail table{width:100%;border-collapse:collapse;font-size:11px}
+.gc-detail th{font-family:var(--font-cond);font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;background:rgba(0,0,0,.18)}
+.gc-detail td{padding:6px 8px;color:#d0dff0;border-bottom:1px solid rgba(0,176,240,.06);white-space:nowrap;vertical-align:middle}
+.gc-detail tr:last-child td{border-bottom:none}
+.gc-detail tr:hover td{background:rgba(0,176,240,.06)}
+.gc-detail td.obs{white-space:normal;max-width:180px;font-size:10px;color:var(--muted);line-height:1.4}
 footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;letter-spacing:.5px;border-top:1px solid var(--border);margin-top:2rem}
 
 @media(max-width:768px){
@@ -339,7 +352,7 @@ const KNOWN_SHEETS = [
   {fecha:'18-05-26',gid:1356018131},{fecha:'19-05-26',gid:1190443317},
   {fecha:'20-05-26',gid:1609901699},
 ];
-const C={GESTOR:'NOMBRE_USR_ULT_PLAN',CLIENTE:'CLIENTE',FE_PLAN:'FE ULT PLAN',LOGIN:'LOGIN',EST:'ESTADO SERVICIO',MOTIVO:'MOTIVO',EMPRESA:'TIPO_EMPRESA',FECHA_SOL:'FECHA_SOLICITUD',ENLACE:'TIPO ENLACE',ID_SERV:'ID_SERVICIO'};
+const C={GESTOR:'NOMBRE_USR_ULT_PLAN',CLIENTE:'CLIENTE',FE_PLAN:'FE ULT PLAN',LOGIN:'LOGIN',EST:'ESTADO SERVICIO',MOTIVO:'MOTIVO',EMPRESA:'TIPO_EMPRESA',FECHA_SOL:'FECHA_SOLICITUD',ENLACE:'TIPO ENLACE',ID_SERV:'ID_SERVICIO',PRODUCTO:'PRODUCTO',TIPO_ORDEN:'TIPO ÓRDEN',SUCURSAL:'TÉCNICA SUCURSAL',OBS_PLAN:'OBS_ULT_PLAN',OBS_REPLAN:'ULT_OBS_REPLANIFICADA',CONTRATO:'ESTADO_CONTRATO',VENDEDOR:'VENDEDOR'};
 const PALETTE=['#00B0F0','#FF44B0','#FF6F42','#FFA700','#8B6FE8','#6EBEEB','#34D399','#FF9A44','#AA7FD0','#64B4F5'];
 const GC='rgba(0,176,240,0.08)';
 const TST={color:'#9BBCD8',font:{size:10,family:"'Barlow Condensed',sans-serif"}};
@@ -439,11 +452,20 @@ function renderKPIs(){
 }
 
 // ── CARGA GESTORES ─────────────────────────────────────────────────────
-function renderGestores(){
+let _gcIdCounter = 0;
+
+function toggleDetalle(id){
+  const tog=document.getElementById('tog-'+id);
+  const det=document.getElementById('det-'+id);
+  const open=det.classList.toggle('open');
+  tog.classList.toggle('open',open);
+}
+
+function renderGestores(){  _gcIdCounter=0;
   const map={};
   filtered.forEach(r=>{
     const g=r[C.GESTOR]||'Sin gestor';
-    if(!map[g])map[g]={plan:0,det:0,rep:0,asig:0,cli:new Set(),maxDias:0};
+    if(!map[g])map[g]={plan:0,det:0,rep:0,asig:0,cli:new Set(),maxDias:0,rows:[]};
     if(esPlan(r))map[g].plan++;
     if(esDet(r)) map[g].det++;
     if(esRep(r)) map[g].rep++;
@@ -451,17 +473,57 @@ function renderGestores(){
     if(r[C.CLIENTE])map[g].cli.add(r[C.CLIENTE]);
     const d=diasDesde(r[C.FE_PLAN]);
     if(d!==null&&d>map[g].maxDias)map[g].maxDias=d;
+    map[g].rows.push(r);
   });
+
   const rows=Object.entries(map).filter(([,d])=>d.plan+d.det+d.rep+d.asig>0)
     .sort((a,b)=>(b[1].plan+b[1].det+b[1].rep+b[1].asig)-(a[1].plan+a[1].det+a[1].rep+a[1].asig));
   const grid=document.getElementById('gestores-grid');
   if(!rows.length){grid.innerHTML='<div class="empty">Sin datos con carga activa</div>';return;}
+
   grid.innerHTML=rows.map(([g,d])=>{
+    const uid=++_gcIdCounter;
     const tot=d.plan+d.det+d.rep+d.asig;
     const pp=tot?Math.round(d.plan/tot*100):0,pd=tot?Math.round(d.det/tot*100):0,pr=tot?Math.round(d.rep/tot*100):0,pa=tot?Math.round(d.asig/tot*100):0;
     const maxD=d.maxDias;
     const alertCls=maxD>7?'gb-crit':maxD>3?'gb-warn':'gb-ok';
     const alertTxt=maxD>7?`🔴 Max ${maxD}d sin gestión`:maxD>3?`⚡ Max ${maxD}d sin gestión`:`✓ Max ${maxD}d`;
+
+    // Ordenar filas: primero por estado, luego por días sin gestión desc
+    const estOrd={Planificada:0,Detenido:1,Replanificada:2,AsignadoTarea:3,PrePlanificada:4};
+    const detRows=[...d.rows]
+      .filter(r=>tieneCarga(r))
+      .sort((a,b)=>{
+        const eo=(estOrd[getEst(a)]??9)-(estOrd[getEst(b)]??9);
+        if(eo!==0)return eo;
+        return(diasDesde(b[C.FE_PLAN])||0)-(diasDesde(a[C.FE_PLAN])||0);
+      });
+
+    const detalleFilas=detRows.map((r,i)=>{
+      const dG=diasDesde(r[C.FE_PLAN]);
+      const dS=diasDesde(r[C.FECHA_SOL]);
+      const obs1=(r[C.OBS_PLAN]||'—').slice(0,80)+(r[C.OBS_PLAN]&&r[C.OBS_PLAN].length>80?'…':'');
+      const obs2=(r[C.OBS_REPLAN]||'—').slice(0,80)+(r[C.OBS_REPLAN]&&r[C.OBS_REPLAN].length>80?'…':'');
+      return `<tr>
+        <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
+        <td style="font-family:var(--font-cond);font-size:10px;color:var(--muted)">${r[C.FECHA_SOL]||'—'}</td>
+        <td style="font-family:var(--font-cond);font-weight:700;color:var(--turquesa);font-size:10px">${r[C.LOGIN]||'—'}</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;font-size:10px">${r[C.CLIENTE]||'—'}</td>
+        <td>${pill(getEst(r))}</td>
+        <td style="font-size:10px;color:var(--muted)">${r[C.PRODUCTO]||'—'}</td>
+        <td style="font-size:10px;color:var(--muted)">${r[C.TIPO_ORDEN]||'—'}</td>
+        <td style="font-size:10px;color:var(--muted)">${r[C.SUCURSAL]||'—'}</td>
+        <td style="font-family:var(--font-cond);font-size:10px;color:var(--muted)">${r[C.FE_PLAN]||'—'}</td>
+        <td>${abDias(dG)}</td>
+        <td class="obs" title="${r[C.OBS_PLAN]||''}">${obs1}</td>
+        <td style="font-size:10px;color:var(--amarillo)">${r[C.MOTIVO]||'—'}</td>
+        <td class="obs" title="${r[C.OBS_REPLAN]||''}">${obs2}</td>
+        <td style="font-size:10px;color:var(--muted)">${r[C.CONTRATO]||'—'}</td>
+        <td style="font-size:10px;color:var(--muted)">${r[C.EMPRESA]||'—'}</td>
+        <td style="font-size:10px;color:var(--muted)">${r[C.VENDEDOR]||'—'}</td>
+      </tr>`;
+    }).join('');
+
     return`<div class="gestor-card">
       <div class="gc-header">
         <div class="gc-name">👤 ${g}</div>
@@ -481,6 +543,22 @@ function renderGestores(){
         ${d.det? `<div class="gc-est"><span class="gc-est-dot" style="background:#FF44B0"></span><span class="gc-est-n" style="color:#FF44B0">${d.det}</span> Detenido</div>`:''}
         ${d.rep? `<div class="gc-est"><span class="gc-est-dot" style="background:#FFA700"></span><span class="gc-est-n" style="color:#FFA700">${d.rep}</span> Replanificada</div>`:''}
         ${d.asig?`<div class="gc-est"><span class="gc-est-dot" style="background:#6EBEEB"></span><span class="gc-est-n" style="color:#6EBEEB">${d.asig}</span> AsignadoTarea</div>`:''}
+      </div>
+      <div class="gc-toggle" id="tog-${uid}" onclick="toggleDetalle(${uid})">
+        <span class="gc-toggle-arrow">▼</span>
+        Ver detalle de ${detRows.length} órdenes
+      </div>
+      <div class="gc-detail" id="det-${uid}">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Fec. Solicitud</th><th>Login</th><th>Cliente</th>
+            <th>Estado Servicio</th><th>Producto</th><th>Tipo Orden</th>
+            <th>Téc. Sucursal</th><th>FE Últ Plan</th><th>Días sin gestión</th>
+            <th>Obs Últ Plan</th><th>Motivo</th><th>Obs Replanif.</th>
+            <th>Est. Contrato</th><th>Tipo Empresa</th><th>Vendedor</th>
+          </tr></thead>
+          <tbody>${detalleFilas||'<tr><td colspan="16" class="empty">Sin órdenes activas</td></tr>'}</tbody>
+        </table>
       </div>
     </div>`;
   }).join('');
