@@ -319,6 +319,9 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
   <!-- TAB CARGA -->
   <div id="tab-carga">
     <div class="section-title"><span class="dot-sec"></span>Carga por Gestor · Desglose de Estados</div>
+    <div id="nota-corte" style="display:none;margin-bottom:10px;padding:8px 14px;background:rgba(255,167,0,.08);border:1px solid rgba(255,167,0,.25);border-radius:8px;font-size:12px;color:var(--amarillo)">
+      ⚠ Filtro de corte activo — el conteo refleja solo la(s) fecha(s) seleccionada(s). Un gestor puede tener órdenes en otros cortes no visibles.
+    </div>
     <div class="gestores-grid" id="gestores-grid"><div class="empty">Cargando...</div></div>
 
     <!-- GRÁFICO TOP GESTORES -->
@@ -767,6 +770,9 @@ function applyFilters(){
     (!lg || lg.has(r[C.LOGIN]))&&
     (!f  || f.has(r._fecha))
   );
+  // Mostrar nota si hay filtro de corte activo
+  const notaCorte = document.getElementById('nota-corte');
+  if(notaCorte) notaCorte.style.display = f ? '' : 'none';
   renderAll();
 }
 
@@ -816,8 +822,24 @@ function toggleDetalle(id){
 }
 
 function renderGestores(){  _gcIdCounter=0;
+
+  // ── DEDUPLICAR POR LOGIN: quedarse con el registro del corte más reciente ──
+  // Si un login aparece en múltiples hojas (cortes de fecha), tomamos solo
+  // el registro de la fecha de corte más reciente para ese login.
+  const loginLatest = {};
+  filtered.forEach(r => {
+    const login = r[C.LOGIN];
+    if(!login) return;
+    const prev = loginLatest[login];
+    // Comparar fechas de corte (_fecha = 'DD-MM-YY')
+    if(!prev || r._fecha > prev._fecha) loginLatest[login] = r;
+  });
+  // Registros sin login siempre se incluyen (uno por fila)
+  const sinLogin = filtered.filter(r => !r[C.LOGIN]);
+  const dedupData = Object.values(loginLatest).concat(sinLogin);
+
   const map={};
-  filtered.forEach(r=>{
+  dedupData.forEach(r=>{
     const g=r[C.GESTOR]||'Sin gestor';
     if(!map[g])map[g]={plan:0,det:0,rep:0,asig:0,cli:new Set(),maxDias:0,rows:[]};
     if(esPlan(r))map[g].plan++;
@@ -859,34 +881,30 @@ function renderGestores(){  _gcIdCounter=0;
 
     const detalleFilas=detRows.map((r,i)=>{
       const dG=diasDesde(r[C.FE_PLAN]);
-      const dS=diasDesde(r[C.FECHA_SOL]);
-      const obs1=(r[C.OBS_PLAN]||'—').slice(0,80)+(r[C.OBS_PLAN]&&r[C.OBS_PLAN].length>80?'…':'');
-      const obs2=(r[C.OBS_REPLAN]||'—').slice(0,80)+(r[C.OBS_REPLAN]&&r[C.OBS_REPLAN].length>80?'…':'');
       return `<tr>
-        <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
-        <td style="font-family:var(--font-cond);font-size:10px;color:var(--muted)">${fmtDate(r[C.FECHA_SOL])}</td>
-        <td style="font-family:var(--font-cond);font-weight:700;color:var(--turquesa);font-size:10px">${r[C.LOGIN]||'—'}</td>
-        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;font-size:10px">${r[C.CLIENTE]||'—'}</td>
+        <td class="td-num">${i+1}</td>
+        <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
+        <td class="td-login" style="font-weight:400;font-size:13px">${r[C.LOGIN]||'—'}</td>
+        <td class="td-client">${r[C.CLIENTE]||'—'}</td>
         <td>${pill(getEst(r))}</td>
-        <td style="font-size:10px;color:var(--muted)">${r[C.PRODUCTO]||'—'}</td>
-        <td style="font-size:10px;color:var(--muted)">${r[C.TIPO_ORDEN]||'—'}</td>
-        <td style="font-size:10px;color:var(--muted)">${r[C.SUCURSAL]||'—'}</td>
-        <td style="font-family:var(--font-cond);font-size:10px;color:var(--muted)">${r[C.FE_PLAN]||'—'}</td>
+        <td class="td-muted">${r[C.PRODUCTO]||'—'}</td>
+        <td class="td-muted">${r[C.TIPO_ORDEN]||'—'}</td>
+        <td class="td-muted">${r[C.SUCURSAL]||'—'}</td>
+        <td class="td-num" style="color:#e8f0ff">${fmtDate(r[C.FE_PLAN])}</td>
         <td>${abDias(dG)}</td>
-        <td class="obs" title="${r[C.OBS_PLAN]||''}">${obs1}</td>
-        <td style="font-size:10px;color:var(--amarillo)">${r[C.MOTIVO]||'—'}</td>
-        <td class="obs" title="${r[C.OBS_REPLAN]||''}">${obs2}</td>
-        <td style="font-size:10px;color:var(--muted)">${r[C.CONTRATO]||'—'}</td>
-        <td style="font-size:10px;color:var(--muted)">${r[C.EMPRESA]||'—'}</td>
-        <td style="font-size:10px;color:var(--muted)">${r[C.VENDEDOR]||'—'}</td>
+        <td style="font-size:13px;color:var(--amarillo)">${r[C.MOTIVO]||'—'}</td>
+        <td class="td-muted">${r[C.CONTRATO]||'—'}</td>
+        <td class="td-muted">${r[C.EMPRESA]||'—'}</td>
+        <td class="td-muted">${r[C.VENDEDOR]||'—'}</td>
       </tr>`;
     }).join('');
+
 
     return`<div class="gestor-card">
       <div class="gc-header">
         <div class="gc-name">👤 ${g}</div>
         <div class="gc-badges">
-          <span class="gc-badge gb-total">${tot} órdenes · ${d.cli.size} clientes</span>
+          <span class="gc-badge gb-total">${tot} órdenes · ${d.cli.size} clientes · ${new Set(d.rows.filter(tieneCarga).map(r=>r[C.LOGIN]).filter(Boolean)).size} logins</span>
           <span class="gc-badge ${alertCls}">${alertTxt}</span>
         </div>
       </div>
@@ -905,6 +923,10 @@ function renderGestores(){  _gcIdCounter=0;
       <div class="gc-toggle" id="tog-${uid}" onclick="toggleDetalle(${uid})">
         <span class="gc-toggle-arrow">▼</span>
         Ver detalle de ${detRows.length} órdenes
+        <span style="font-size:10px;color:var(--muted);font-weight:400;margin-left:6px">
+          · ${new Set(detRows.map(r=>r[C.LOGIN]).filter(Boolean)).size} logins únicos
+          · corte: ${[...new Set(detRows.map(r=>r._fecha))].join(', ')}
+        </span>
       </div>
       <div class="gc-detail" id="det-${uid}">
         <table>
@@ -912,10 +934,9 @@ function renderGestores(){  _gcIdCounter=0;
             <th>#</th><th>Fec. Solicitud</th><th>Login</th><th>Cliente</th>
             <th>Estado Servicio</th><th>Producto</th><th>Tipo Orden</th>
             <th>Téc. Sucursal</th><th>FE Últ Plan</th><th>Días sin gestión</th>
-            <th>Obs Últ Plan</th><th>Motivo</th><th>Obs Replanif.</th>
-            <th>Est. Contrato</th><th>Tipo Empresa</th><th>Vendedor</th>
+            <th>Motivo</th><th>Est. Contrato</th><th>Tipo Empresa</th><th>Vendedor</th>
           </tr></thead>
-          <tbody>${detalleFilas||'<tr><td colspan="16" class="empty">Sin órdenes activas</td></tr>'}</tbody>
+          <tbody>${detalleFilas||'<tr><td colspan="14" class="empty">Sin órdenes activas</td></tr>'}</tbody>
         </table>
       </div>
     </div>`;
@@ -1015,9 +1036,19 @@ let _detalleEstadoFil   = 'all';
 let _gestorMapCache     = {};
 
 function renderTopGestores(){
-  const map = {};
+  // Deduplicar por LOGIN — mismo criterio que renderGestores
+  const loginLatest2 = {};
   filtered.forEach(r => {
     if(!tieneCarga(r)) return;
+    const login = r[C.LOGIN];
+    if(!login) return;
+    if(!loginLatest2[login] || r._fecha > loginLatest2[login]._fecha) loginLatest2[login] = r;
+  });
+  const sinLogin2 = filtered.filter(r => !r[C.LOGIN] && tieneCarga(r));
+  const dedupTop  = Object.values(loginLatest2).concat(sinLogin2);
+
+  const map = {};
+  dedupTop.forEach(r => {
     const g = r[C.GESTOR] || 'Sin gestor';
     if(!map[g]) map[g] = {plan:0, det:0, rep:0, asig:0, rows:[]};
     if(esPlan(r))  map[g].plan++;
