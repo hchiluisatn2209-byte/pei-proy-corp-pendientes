@@ -153,6 +153,12 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
   .charts-grid{grid-template-columns:1fr}
   .kpi-strip{grid-template-columns:repeat(2,1fr)}
 }
+
+/* ── FILTRO ESTADO PILLS ── */
+.estado-fil{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:99px;font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:.5px;cursor:pointer;border:1.5px solid transparent;transition:all .15s;opacity:.6}
+.estado-fil.active,.estado-fil:hover{opacity:1}
+.ef-all{border-color:rgba(155,188,216,.4);color:var(--muted);background:rgba(155,188,216,.1)}
+.ef-all.active{border-color:var(--muted);background:rgba(155,188,216,.18);opacity:1}
 </style>
 </head>
 <body>
@@ -264,6 +270,42 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
   <div id="tab-carga">
     <div class="section-title"><span class="dot-sec"></span>Carga por Gestor · Desglose de Estados</div>
     <div class="gestores-grid" id="gestores-grid"><div class="empty">Cargando...</div></div>
+
+    <!-- GRÁFICO TOP GESTORES -->
+    <div class="section-title" style="margin-top:20px"><span class="dot-sec" style="background:var(--amarillo)"></span>Top Gestores · Carga Total (clic para ver detalle)</div>
+    <div class="chart-card" style="margin-bottom:16px">
+      <div class="card-title"><span class="dot-sec"></span>Ranking de carga activa por gestor</div>
+      <div class="card-sub">Haz clic en una barra o nombre para cargar el detalle de órdenes abajo</div>
+      <div style="position:relative;height:420px"><canvas id="ch-top-gestores"></canvas></div>
+    </div>
+
+    <!-- DETALLE GESTOR SELECCIONADO -->
+    <div id="detalle-gestor-wrap" style="display:none">
+      <div class="section-title"><span class="dot-sec" style="background:var(--magenta)"></span>
+        Detalle de órdenes · <span id="detalle-gestor-nombre" style="color:var(--turquesa)">—</span>
+        <button onclick="exportarExcel()" style="margin-left:auto;display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1.5px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:#34D399;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;letter-spacing:.5px;white-space:nowrap">
+          ⬇ Exportar Excel
+        </button>
+      </div>
+      <div class="tbl-card" style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <span id="detalle-count" style="font-family:var(--font-cond);font-size:11px;color:var(--muted);letter-spacing:1px"></span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap" id="detalle-estado-filtros"></div>
+        </div>
+        <div style="overflow-x:auto">
+          <table id="tbl-detalle">
+            <thead><tr>
+              <th>#</th><th>Fec. Solicitud</th><th>Login</th><th>Cliente</th>
+              <th>Estado Servicio</th><th>Producto</th><th>Tipo Orden</th>
+              <th>Téc. Sucursal</th><th>FE Últ Plan</th><th>Días sin gestión</th>
+              <th>Obs Últ Plan</th><th>Motivo</th><th>Obs Replanif.</th>
+              <th>Est. Contrato</th><th>Tipo Empresa</th><th>Vendedor</th>
+            </tr></thead>
+            <tbody id="tbl-detalle-body"><tr><td colspan="16" class="empty">Selecciona un gestor en el gráfico</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- TAB ALERTAS -->
@@ -648,9 +690,206 @@ function renderResumen(){
   }).join(''):`<tr><td colspan="9" class="empty">Sin datos</td></tr>`;
 }
 
+
+// ── GRÁFICO TOP GESTORES + DETALLE ────────────────────────────────────
+let _gestorSeleccionado = null;
+let _detalleEstadoFil   = 'all';
+let _gestorMapCache     = {};
+
+function renderTopGestores(){
+  // Construir mapa gestor → totales
+  const map = {};
+  filtered.forEach(r => {
+    if(!tieneCarga(r)) return;
+    const g = r[C.GESTOR] || 'Sin gestor';
+    if(!map[g]) map[g] = {plan:0, det:0, rep:0, asig:0, rows:[]};
+    if(esPlan(r))  map[g].plan++;
+    if(esDet(r))   map[g].det++;
+    if(esRep(r))   map[g].rep++;
+    if(esAsig(r))  map[g].asig++;
+    map[g].rows.push(r);
+  });
+  _gestorMapCache = map;
+
+  const sorted = Object.entries(map)
+    .map(([g,d]) => ({g, tot: d.plan+d.det+d.rep+d.asig, ...d}))
+    .sort((a,b) => b.tot - a.tot)
+    .slice(0, 20);
+
+  const labels = sorted.map(d => d.g.length > 28 ? d.g.slice(0,26)+'…' : d.g);
+  const fullLabels = sorted.map(d => d.g);
+
+  if(charts['ch-top-gestores']) charts['ch-top-gestores'].destroy();
+  const canvas = document.getElementById('ch-top-gestores');
+  if(!canvas) return;
+
+  charts['ch-top-gestores'] = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {label:'Planificada',   data: sorted.map(d=>d.plan), backgroundColor:'rgba(0,176,240,.8)',   borderRadius:3, stack:'s'},
+        {label:'Detenido',      data: sorted.map(d=>d.det),  backgroundColor:'rgba(255,68,176,.8)',  borderRadius:3, stack:'s'},
+        {label:'Replanificada', data: sorted.map(d=>d.rep),  backgroundColor:'rgba(255,167,0,.8)',   borderRadius:3, stack:'s'},
+        {label:'AsignadoTarea', data: sorted.map(d=>d.asig), backgroundColor:'rgba(110,190,235,.8)', borderRadius:3, stack:'s'},
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: { color:'#9BBCD8', font:{size:11,family:"'Barlow Condensed',sans-serif"}, boxWidth:12, padding:16 }
+        },
+        tooltip: {
+          callbacks: {
+            title: ctx => fullLabels[ctx[0].dataIndex],
+            afterBody: items => {
+              const idx = items[0].dataIndex;
+              const d = sorted[idx];
+              return [`Total: ${d.tot}`, `Plan: ${d.plan}  Det: ${d.det}  Replan: ${d.rep}  Asig: ${d.asig}`];
+            }
+          }
+        }
+      },
+      scales: {
+        x: { stacked:true, grid:{color:'rgba(0,176,240,.08)'}, ticks:{color:'#9BBCD8',font:{size:10,family:"'Barlow Condensed',sans-serif"}} },
+        y: { stacked:true, grid:{color:'transparent'},
+          ticks:{color:'#9BBCD8',font:{size:10,family:"'Barlow Condensed',sans-serif"},
+          callback: (v,i) => labels[i]} }
+      },
+      onClick(evt, elems){
+        if(!elems.length) return;
+        const idx = elems[0].index;
+        cargarDetalleGestor(fullLabels[idx]);
+      },
+      onHover(evt, elems){ canvas.style.cursor = elems.length ? 'pointer' : 'default'; }
+    }
+  });
+}
+
+function cargarDetalleGestor(nombre){
+  _gestorSeleccionado = nombre;
+  _detalleEstadoFil   = 'all';
+  const wrap = document.getElementById('detalle-gestor-wrap');
+  wrap.style.display = '';
+  document.getElementById('detalle-gestor-nombre').textContent = nombre;
+  // Scroll suave al detalle
+  setTimeout(() => wrap.scrollIntoView({behavior:'smooth', block:'start'}), 80);
+  renderDetalleTabla();
+}
+
+function renderDetalleTabla(){
+  const d = _gestorMapCache[_gestorSeleccionado];
+  if(!d){ document.getElementById('tbl-detalle-body').innerHTML='<tr><td colspan="16" class="empty">Sin datos</td></tr>'; return; }
+
+  // Botones de filtro por estado
+  const estados = ['all','Planificada','Detenido','Replanificada','AsignadoTarea'];
+  const counts  = {all: d.rows.filter(tieneCarga).length,
+    Planificada: d.rows.filter(esPlan).length,
+    Detenido:    d.rows.filter(esDet).length,
+    Replanificada: d.rows.filter(esRep).length,
+    AsignadoTarea: d.rows.filter(esAsig).length
+  };
+  const estCols = {Planificada:'#00B0F0', Detenido:'#FF44B0', Replanificada:'#FFA700', AsignadoTarea:'#6EBEEB'};
+
+  document.getElementById('detalle-estado-filtros').innerHTML =
+    estados.map(e => {
+      const isAll = e==='all';
+      const cls = (e===_detalleEstadoFil?'active':'');
+      const col = isAll ? '' : `color:${estCols[e]};border-color:${estCols[e]}40;background:${estCols[e]}18`;
+      const lbl = isAll ? 'Todos' : e;
+      return `<span class="estado-fil ${isAll?'ef-all':''} ${cls}" style="${col}" onclick="setDetalleEstado('${e}')">${lbl} <b>${counts[e]||0}</b></span>`;
+    }).join('');
+
+  // Filas filtradas
+  let rows = d.rows.filter(tieneCarga);
+  if(_detalleEstadoFil !== 'all') rows = rows.filter(r => getEst(r) === _detalleEstadoFil);
+  // Ordenar: por estado luego días sin gestión desc
+  const estOrd={Planificada:0,Detenido:1,Replanificada:2,AsignadoTarea:3};
+  rows.sort((a,b)=>{
+    const eo=(estOrd[getEst(a)]??9)-(estOrd[getEst(b)]??9);
+    return eo!==0 ? eo : (diasDesde(b[C.FE_PLAN])||0)-(diasDesde(a[C.FE_PLAN])||0);
+  });
+
+  document.getElementById('detalle-count').textContent =
+    `${rows.length} ÓRDENES · GESTOR: ${_gestorSeleccionado.toUpperCase()}`;
+
+  document.getElementById('tbl-detalle-body').innerHTML = rows.length ?
+    rows.map((r,i) => {
+      const dG = diasDesde(r[C.FE_PLAN]);
+      const obs1 = (r[C.OBS_PLAN]||'—').slice(0,80) + (r[C.OBS_PLAN]&&r[C.OBS_PLAN].length>80?'…':'');
+      const obs2 = (r[C.OBS_REPLAN]||'—').slice(0,80) + (r[C.OBS_REPLAN]&&r[C.OBS_REPLAN].length>80?'…':'');
+      return `<tr>
+        <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
+        <td style="font-family:var(--font-cond);font-size:10px;color:var(--muted)">${r[C.FECHA_SOL]||'—'}</td>
+        <td style="font-family:var(--font-cond);font-weight:700;color:var(--turquesa)">${r[C.LOGIN]||'—'}</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;font-size:11px">${r[C.CLIENTE]||'—'}</td>
+        <td>${pill(getEst(r))}</td>
+        <td style="font-size:11px;color:var(--muted)">${r[C.PRODUCTO]||'—'}</td>
+        <td style="font-size:11px;color:var(--muted)">${r[C.TIPO_ORDEN]||'—'}</td>
+        <td style="font-size:11px;color:var(--muted)">${r[C.SUCURSAL]||'—'}</td>
+        <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${r[C.FE_PLAN]||'—'}</td>
+        <td>${abDias(dG)}</td>
+        <td class="obs" style="white-space:normal;max-width:180px;font-size:10px;color:var(--muted);line-height:1.4" title="${(r[C.OBS_PLAN]||'').replace(/"/g,"'")}">${obs1}</td>
+        <td style="font-size:11px;color:var(--amarillo)">${r[C.MOTIVO]||'—'}</td>
+        <td class="obs" style="white-space:normal;max-width:180px;font-size:10px;color:var(--muted);line-height:1.4" title="${(r[C.OBS_REPLAN]||'').replace(/"/g,"'")}">${obs2}</td>
+        <td style="font-size:11px;color:var(--muted)">${r[C.CONTRATO]||'—'}</td>
+        <td style="font-size:11px;color:var(--muted)">${r[C.EMPRESA]||'—'}</td>
+        <td style="font-size:11px;color:var(--muted)">${r[C.VENDEDOR]||'—'}</td>
+      </tr>`;
+    }).join('') :
+    '<tr><td colspan="16" class="empty">Sin órdenes para este filtro</td></tr>';
+}
+
+function setDetalleEstado(e){
+  _detalleEstadoFil = e;
+  renderDetalleTabla();
+}
+
+// ── EXPORTAR EXCEL (CSV descargable) ──────────────────────────────────
+function exportarExcel(){
+  const d = _gestorMapCache[_gestorSeleccionado];
+  if(!d) return;
+  let rows = d.rows.filter(tieneCarga);
+  if(_detalleEstadoFil !== 'all') rows = rows.filter(r => getEst(r) === _detalleEstadoFil);
+
+  const headers = ['FECHA_SOLICITUD','NOMBRE_USR_ULT_PLAN','CLIENTE','LOGIN','ESTADO SERVICIO',
+    'PRODUCTO','TIPO ÓRDEN','TÉCNICA SUCURSAL','FE ULT PLAN','DIAS_SIN_GESTION',
+    'OBS_ULT_PLAN','MOTIVO','ULT_OBS_REPLANIFICADA','ESTADO_CONTRATO','TIPO_EMPRESA','VENDEDOR'];
+  const colKeys = [C.FECHA_SOL,C.GESTOR,C.CLIENTE,C.LOGIN,C.EST,
+    C.PRODUCTO,C.TIPO_ORDEN,C.SUCURSAL,C.FE_PLAN,'_dias',
+    C.OBS_PLAN,C.MOTIVO,C.OBS_REPLAN,C.CONTRATO,C.EMPRESA,C.VENDEDOR];
+
+  const escape = v => '"'+(String(v||'').replace(/"/g,'""'))+'"';
+  const lines = [headers.map(escape).join(',')];
+  rows.forEach(r => {
+    const dG = diasDesde(r[C.FE_PLAN]);
+    const vals = colKeys.map(k => k==='_dias' ? (dG!==null?dG:'') : r[k]||'');
+    lines.push(vals.map(escape).join(','));
+  });
+
+  const bom = '﻿';
+  const blob = new Blob([bom+lines.join('
+')], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const nombre = (_gestorSeleccionado||'gestor').replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
+  a.download = `PEI_Pendientes_${nombre}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ── RENDER ALL ──────────────────────────────────────────────────────────
 function renderAll(){
   renderKPIs();renderGestores();renderAlertas();
+  renderTopGestores();
+  // Limpiar detalle al recargar datos
+  document.getElementById('detalle-gestor-wrap').style.display='none';
+  _gestorSeleccionado=null;
   hBar('ch-gestores',topN(count(filtered.filter(tieneCarga),C.GESTOR),10),'#00B0F0');
   doughnut('ch-estado',topN(count(filtered,C.EST),8),'leg-estado');
   hBar('ch-motivo',topN(count(filtered,C.MOTIVO),10),'#FF6F42');
