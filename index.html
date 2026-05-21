@@ -159,6 +159,11 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
 .estado-fil.active,.estado-fil:hover{opacity:1}
 .ef-all{border-color:rgba(155,188,216,.4);color:var(--muted);background:rgba(155,188,216,.1)}
 .ef-all.active{border-color:var(--muted);background:rgba(155,188,216,.18);opacity:1}
+
+/* ── GOOGLE SHEETS BADGE ── */
+.gs-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 14px;border-radius:99px;border:1.5px solid rgba(52,211,153,.45);background:rgba(52,211,153,.08);color:#34D399;font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:.8px;backdrop-filter:blur(6px)}
+.gs-badge svg{width:13px;height:13px;flex-shrink:0}
+.gs-badge .gs-hora{color:rgba(52,211,153,.75);font-weight:400}
 </style>
 </head>
 <body>
@@ -166,7 +171,7 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
 <!-- HEADER -->
 <header>
   <div class="header-left">
-    <div class="logo-badge">GTN</div>
+    <div class="logo-badge">PEI</div>
     <div class="header-titles">
       <h1>Dashboard Ejecutivo · <span style="color:var(--turquesa)">Órdenes PYL</span></h1>
       <p>Proyectos e Implementación · Gestión de Pendientes</p>
@@ -191,7 +196,8 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
   <div class="prog-wrap" id="prog-wrap" style="display:none">
     <div class="prog-bar" id="prog-bar" style="width:0%"></div>
   </div>
-  <span id="st-detail" style="margin-left:auto;font-size:10px;letter-spacing:.5px"></span>
+  <span id="st-detail" style="font-size:10px;letter-spacing:.5px"></span>
+  <span id="gs-badge" style="display:none;margin-left:auto"></span>
 </div>
 
 <!-- FILTERS -->
@@ -407,7 +413,7 @@ const EST_PILL={Planificada:'p-plan',Detenido:'p-det',Replanificada:'p-replan',A
 let allData=[],filtered=[],charts={},sheetStats={};
 
 // ── UTILS ──────────────────────────────────────────────────────────────
-const csvUrl=gid=>`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+const csvUrl=gid=>`https://docs.google.com/spreadsheets/d/${SHEET_ID}/pub?gid=${gid}&single=true&output=csv`;
 function parseLine(l){const v=[];let c='',q=false;for(const ch of l){if(ch==='"')q=!q;else if(ch===','&&!q){v.push(c);c='';}else c+=ch;}v.push(c);return v.map(s=>s.replace(/^"|"$/g,'').trim());}
 function parseCSV(txt){const lines=txt.split('\n').filter(l=>l.trim());if(lines.length<2)return[];const h=parseLine(lines[0]);return lines.slice(1).map(l=>{const v=parseLine(l);const o={};h.forEach((k,i)=>{o[k.trim()]=(v[i]||'').trim();});return o;}).filter(r=>Object.values(r).some(v=>v));}
 function parseDate(s){if(!s||!s.trim())return null;const t=s.trim();let m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m)return new Date(+m[3],+m[2]-1,+m[1]);m=t.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);if(m)return new Date(+m[3],+m[2]-1,+m[1]);m=t.match(/^(\d{1,2})-(\d{1,2})-(\d{2})$/);if(m)return new Date(2000+ +m[3],+m[2]-1,+m[1]);return null;}
@@ -899,7 +905,8 @@ function renderAll(){
 
 // ── CARGA CSV ───────────────────────────────────────────────────────────
 async function fetchSheet(s){
-  const r=await fetch(csvUrl(s.gid));if(!r.ok)throw new Error('HTTP '+r.status);
+  const r=await fetch(csvUrl(s.gid),{redirect:'follow',cache:'no-cache'});
+  if(!r.ok)throw new Error('HTTP '+r.status);
   const txt=await r.text();return parseCSV(txt).map(row=>({...row,_fecha:s.fecha,_gid:s.gid}));
 }
 async function loadAll(){
@@ -924,9 +931,18 @@ async function loadAll(){
   populateSel('fil-enlace',allData.map(r=>r[C.ENLACE]));
   populateSel('fil-fecha',allData.map(r=>r._fecha));
   filtered=[...allData];renderAll();
-  const now=new Date().toLocaleString('es-EC');
-  document.getElementById('footer-txt').textContent=`GTN Proyectos e Implementación · PEI PENDIENTES · ${allData.length.toLocaleString('es-EC')} registros · ${ok} hojas · ${now}`;
-  setStatus(err===0?`${ok} hojas cargadas correctamente`:`${ok} OK · ${err} con error`,err===KNOWN_SHEETS.length?'error':'ok',allData.length.toLocaleString('es-EC')+' registros totales');
+  const now=new Date();
+  const horaFmt=now.toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'});
+  const fechaFmt=now.toLocaleDateString('es-EC',{day:'2-digit',month:'short',year:'numeric'});
+  // Badge Google Sheets
+  const badge=document.getElementById('gs-badge');
+  badge.style.display='inline-flex';
+  badge.innerHTML=`<span class="gs-badge">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    Google Sheets &nbsp;·&nbsp; <span class="gs-hora">${horaFmt}</span>
+  </span>`;
+  document.getElementById('footer-txt').textContent=`PEI Proyectos e Implementación · PEI PENDIENTES · ${allData.length.toLocaleString('es-EC')} registros · ${ok} hojas · ${fechaFmt} ${horaFmt}`;
+  setStatus(err===0?`${ok} hojas cargadas · ${allData.length.toLocaleString('es-EC')} registros`:`${ok} OK · ${err} con error`,err===KNOWN_SHEETS.length?'error':'ok',fechaFmt);
   setProgress(0,0);
 }
 loadAll();
