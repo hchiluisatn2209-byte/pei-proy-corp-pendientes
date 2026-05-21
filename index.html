@@ -839,9 +839,9 @@ function renderDetalleTabla(){
         <td style="font-size:11px;color:var(--muted)">${r[C.SUCURSAL]||'—'}</td>
         <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${r[C.FE_PLAN]||'—'}</td>
         <td>${abDias(dG)}</td>
-        <td class="obs" style="white-space:normal;max-width:180px;font-size:10px;color:var(--muted);line-height:1.4" title="${(r[C.OBS_PLAN]||'').replace(/"/g,"'")}">${obs1}</td>
+        <td class="obs" style="white-space:normal;max-width:180px;font-size:10px;color:var(--muted);line-height:1.4" title="${r[C.OBS_PLAN]||''}">${obs1}</td>
         <td style="font-size:11px;color:var(--amarillo)">${r[C.MOTIVO]||'—'}</td>
-        <td class="obs" style="white-space:normal;max-width:180px;font-size:10px;color:var(--muted);line-height:1.4" title="${(r[C.OBS_REPLAN]||'').replace(/"/g,"'")}">${obs2}</td>
+        <td class="obs" style="white-space:normal;max-width:180px;font-size:10px;color:var(--muted);line-height:1.4" title="${r[C.OBS_REPLAN]||''}">${obs2}</td>
         <td style="font-size:11px;color:var(--muted)">${r[C.CONTRATO]||'—'}</td>
         <td style="font-size:11px;color:var(--muted)">${r[C.EMPRESA]||'—'}</td>
         <td style="font-size:11px;color:var(--muted)">${r[C.VENDEDOR]||'—'}</td>
@@ -878,8 +878,7 @@ function exportarExcel(){
   });
 
   const bom = '﻿';
-  const blob = new Blob([bom+lines.join('
-')], {type:'text/csv;charset=utf-8'});
+  const blob = new Blob([bom+lines.join('\n')], {type:'text/csv;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -937,10 +936,7 @@ async function loadAll(){
   // Badge Google Sheets
   const badge=document.getElementById('gs-badge');
   badge.style.display='inline-flex';
-  badge.innerHTML=`<span class="gs-badge">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-    Google Sheets &nbsp;·&nbsp; <span class="gs-hora">${horaFmt}</span>
-  </span>`;
+  badge.innerHTML='<span class="gs-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Google Sheets &nbsp;&middot;&nbsp; <span class="gs-hora">'+horaFmt+'</span></span>';
   document.getElementById('footer-txt').textContent=`PEI Proyectos e Implementación · PEI PENDIENTES · ${allData.length.toLocaleString('es-EC')} registros · ${ok} hojas · ${fechaFmt} ${horaFmt}`;
   setStatus(err===0?`${ok} hojas cargadas · ${allData.length.toLocaleString('es-EC')} registros`:`${ok} OK · ${err} con error`,err===KNOWN_SHEETS.length?'error':'ok',fechaFmt);
   setProgress(0,0);
