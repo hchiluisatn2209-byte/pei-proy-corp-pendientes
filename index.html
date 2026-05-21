@@ -394,7 +394,7 @@ const SHEET_ID = '1e0LPzPCBzAuO7HXpYAYSo7ogXQg0rau5-CFrGUfyzaE';
 // 2. Pegar el código del proxy (ver comentario en loadAll)
 // 3. Publicar como Web App (Ejecutar como: yo, Acceso: Cualquiera)
 // 4. Pegar la URL aquí:
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw54mbXXAD4WgY9Mf0eN2MezkBbs9NI1Aifd9SjwbDC5yjoHkfVERm1zpTChTrgQ2Kb/exec'; // Ej: 'https://script.google.com/macros/s/XXXX/exec'
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxzPNG5Xs2olpEBIKc8yi1xu6kadzBFf0-OlMRIauSRV5JyZMVotcw5ZO4TxEGwzBbU/exec'; // Ej: 'https://script.google.com/macros/s/XXXX/exec'
 const KNOWN_SHEETS = [
   {fecha:'01-05-26',gid:14159634},{fecha:'02-05-26',gid:982750352},
   {fecha:'04-05-26',gid:1948937092},{fecha:'05-05-26',gid:1425746571},
@@ -961,62 +961,6 @@ function renderAll(){
   hBar('ch-motivo',topN(count(filtered,C.MOTIVO),10),'#FF6F42');
   doughnut('ch-empresa',topN(count(filtered,C.EMPRESA),8),'leg-empresa');
   renderTend();renderResumen();
-}
-
-// ── CARGA CSV ───────────────────────────────────────────────────────────
-// Cargar datos via JSONP (evita restricciones CORS de Google Workspace)
-function fetchSheetJsonp(s){
-  return new Promise((resolve, reject) => {
-    const cbName = `_gviz_cb_${s.gid}`;
-    const timeout = setTimeout(() => {
-      delete window[cbName];
-      script.remove();
-      reject(new Error('Timeout'));
-    }, 15000);
-
-    window[cbName] = function(data){
-      clearTimeout(timeout);
-      delete window[cbName];
-      script.remove();
-      try {
-        // gviz retorna JSON con tabla de datos
-        const table = data.table;
-        if(!table || !table.cols) { resolve([]); return; }
-        // Extraer headers de cols
-        const headers = table.cols.map(c => (c.label||c.id||'').trim());
-        // Extraer filas
-        const rows = (table.rows||[]).map(r => {
-          const obj = {_fecha: s.fecha, _gid: s.gid};
-          headers.forEach((h, i) => {
-            const cell = r.c ? r.c[i] : null;
-            obj[h] = cell && cell.v !== null && cell.v !== undefined ? String(cell.v) : '';
-          });
-          return obj;
-        }).filter(r => Object.values(r).some(v => v && v !== s.fecha && String(v).trim()));
-        resolve(rows);
-      } catch(e) { reject(e); }
-    };
-
-    const script = document.createElement('script');
-    script.src = jsonpUrl(s.gid);
-    script.onerror = () => { clearTimeout(timeout); delete window[cbName]; reject(new Error('Script error')); };
-    document.head.appendChild(script);
-  });
-}
-
-async function fetchSheet(s){
-  // Si hay Apps Script configurado, usarlo primero (evita restricciones corporativas)
-  if(APPS_SCRIPT_URL){
-    try{
-      const r = await fetch(`${APPS_SCRIPT_URL}?gid=${s.gid}`,{cache:'no-cache',redirect:'follow'});
-      if(r.ok){
-        const txt = await r.text();
-        if(txt && txt.length > 10) return parseCSV(txt).map(row=>({...row,_fecha:s.fecha,_gid:s.gid}));
-      }
-    }catch(e){ console.warn('Apps Script falló, intentando JSONP:', e); }
-  }
-  // Fallback: JSONP via gviz (funciona si el Sheets es público)
-  return fetchSheetJsonp(s);
 }
 async function loadAll(){
   allData=[];sheetStats={};
