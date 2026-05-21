@@ -424,8 +424,52 @@ let allData=[],filtered=[],charts={},sheetStats={};
 const appsScriptUrl = gid => `${APPS_SCRIPT_URL}?gid=${gid}`;
 function parseLine(l){const v=[];let c='',q=false;for(const ch of l){if(ch==='"')q=!q;else if(ch===','&&!q){v.push(c);c='';}else c+=ch;}v.push(c);return v.map(s=>s.replace(/^"|"$/g,'').trim());}
 function parseCSV(txt){const lines=txt.split('\n').filter(l=>l.trim());if(lines.length<2)return[];const h=parseLine(lines[0]);return lines.slice(1).map(l=>{const v=parseLine(l);const o={};h.forEach((k,i)=>{o[k.trim()]=(v[i]||'').trim();});return o;}).filter(r=>Object.values(r).some(v=>v));}
-function parseDate(s){if(!s||!s.trim())return null;const t=s.trim();let m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m)return new Date(+m[3],+m[2]-1,+m[1]);m=t.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);if(m)return new Date(+m[3],+m[2]-1,+m[1]);m=t.match(/^(\d{1,2})-(\d{1,2})-(\d{2})$/);if(m)return new Date(2000+ +m[3],+m[2]-1,+m[1]);return null;}
-function diasDesde(f){if(!f)return null;const d=parseDate(f);if(!d)return null;const h=new Date();h.setHours(0,0,0,0);return Math.floor((h-d)/86400000);}
+// Parsea múltiples formatos: DD/MM/YYYY, DD-MM-YYYY, DD-MM-YY, YYYY-MM-DD, M/D/YYYY, timestamp numérico
+function parseDate(s){
+  if(!s||!s.trim())return null;
+  const t=s.trim();
+  let m;
+  // DD/MM/YYYY
+  m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m)return new Date(+m[3],+m[2]-1,+m[1]);
+  // DD-MM-YYYY
+  m=t.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);if(m)return new Date(+m[3],+m[2]-1,+m[1]);
+  // DD-MM-YY
+  m=t.match(/^(\d{1,2})-(\d{1,2})-(\d{2})$/);if(m)return new Date(2000+ +m[3],+m[2]-1,+m[1]);
+  // YYYY-MM-DD (ISO)
+  m=t.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return new Date(+m[1],+m[2]-1,+m[3]);
+  // Número serial de Excel (días desde 1900-01-01)
+  if(/^\d+(\.\d+)?$/.test(t)){
+    const serial=Math.floor(parseFloat(t));
+    if(serial>40000&&serial<60000){
+      const d=new Date((serial-25569)*86400000);
+      return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());
+    }
+  }
+  // Intentar Date nativo como último recurso
+  const nd=new Date(t);
+  return isNaN(nd.getTime())?null:nd;
+}
+
+// Formatea fecha a DD/MM/YYYY
+function fmtDate(s){
+  if(!s||!s.trim())return '—';
+  const d=parseDate(s);
+  if(!d||isNaN(d.getTime()))return s; // retornar original si no parsea
+  const dd=String(d.getDate()).padStart(2,'0');
+  const mm=String(d.getMonth()+1).padStart(2,'0');
+  const yyyy=d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+// Calcula días transcurridos desde una fecha hasta HOY (positivo = días pasados)
+function diasDesde(f){
+  if(!f||!f.trim())return null;
+  const d=parseDate(f);
+  if(!d||isNaN(d.getTime()))return null;
+  const hoy=new Date();hoy.setHours(0,0,0,0);
+  const diff=Math.floor((hoy-d)/86400000);
+  return diff; // positivo = fecha pasada, negativo = fecha futura
+}
 function getEst(r){return(r[C.EST]||'').trim();}
 const tieneCarga=r=>{const e=getEst(r);return['Planificada','Detenido','Replanificada','AsignadoTarea'].includes(e);};
 const esPlan=r=>getEst(r)==='Planificada';
@@ -436,8 +480,22 @@ const esPre =r=>getEst(r)==='PrePlanificada';
 function count(data,key){return data.reduce((a,r)=>{const v=r[key]||'Sin dato';a[v]=(a[v]||0)+1;return a;},{});}
 function topN(obj,n){return Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,n);}
 function pill(v){const c=EST_PILL[v]||'p-gray';return`<span class="pill ${c}">${v||'—'}</span>`;}
-function abDias(d,thresholds=[3,7]){if(d===null)return`<span class="ab ab-nd">—</span>`;if(d<=thresholds[0])return`<span class="ab ab-ok">✓ ${d}d</span>`;if(d<=thresholds[1])return`<span class="ab ab-warn">⚡ ${d}d</span>`;return`<span class="ab ab-crit">🔴 ${d}d</span>`;}
-function abSol(d){if(d===null)return`<span class="ab ab-nd">—</span>`;if(d<=15)return`<span class="ab ab-ok">${d}d</span>`;if(d<=30)return`<span class="ab ab-warn">${d}d</span>`;return`<span class="ab ab-crit">${d}d</span>`;}
+function abDias(d,thresholds=[3,7]){
+  if(d===null||d===undefined)return`<span class="ab ab-nd">—</span>`;
+  if(d<0)return`<span class="ab ab-ok">📅 ${Math.abs(d)}d fut.</span>`; // fecha futura
+  if(d===0)return`<span class="ab ab-ok">✓ Hoy</span>`;
+  if(d<=thresholds[0])return`<span class="ab ab-ok">✓ ${d}d</span>`;
+  if(d<=thresholds[1])return`<span class="ab ab-warn">⚡ ${d}d</span>`;
+  return`<span class="ab ab-crit">🔴 ${d}d</span>`;
+}
+function abSol(d){
+  if(d===null||d===undefined)return`<span class="ab ab-nd">—</span>`;
+  if(d<0)return`<span class="ab ab-ok">📅 ${Math.abs(d)}d</span>`;
+  if(d===0)return`<span class="ab ab-ok">Hoy</span>`;
+  if(d<=15)return`<span class="ab ab-ok">${d}d</span>`;
+  if(d<=30)return`<span class="ab ab-warn">${d}d</span>`;
+  return`<span class="ab ab-crit">${d}d</span>`;
+}
 
 // ── STATUS ─────────────────────────────────────────────────────────────
 function setStatus(msg,state='loading',detail=''){
@@ -543,7 +601,11 @@ function renderGestores(){  _gcIdCounter=0;
     const pp=tot?Math.round(d.plan/tot*100):0,pd=tot?Math.round(d.det/tot*100):0,pr=tot?Math.round(d.rep/tot*100):0,pa=tot?Math.round(d.asig/tot*100):0;
     const maxD=d.maxDias;
     const alertCls=maxD>7?'gb-crit':maxD>3?'gb-warn':'gb-ok';
-    const alertTxt=maxD>7?`🔴 Max ${maxD}d sin gestión`:maxD>3?`⚡ Max ${maxD}d sin gestión`:`✓ Max ${maxD}d`;
+    const alertTxt=maxD<0?`📅 ${Math.abs(maxD)}d futura`:
+                   maxD===0?`✓ Gestionado hoy`:
+                   maxD>7?`🔴 ${maxD}d sin gestión`:
+                   maxD>3?`⚡ ${maxD}d sin gestión`:
+                   `✓ ${maxD}d`;
 
     // Ordenar filas: primero por estado, luego por días sin gestión desc
     const estOrd={Planificada:0,Detenido:1,Replanificada:2,AsignadoTarea:3,PrePlanificada:4};
@@ -562,7 +624,7 @@ function renderGestores(){  _gcIdCounter=0;
       const obs2=(r[C.OBS_REPLAN]||'—').slice(0,80)+(r[C.OBS_REPLAN]&&r[C.OBS_REPLAN].length>80?'…':'');
       return `<tr>
         <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
-        <td style="font-family:var(--font-cond);font-size:10px;color:var(--muted)">${r[C.FECHA_SOL]||'—'}</td>
+        <td style="font-family:var(--font-cond);font-size:10px;color:var(--muted)">${fmtDate(r[C.FECHA_SOL])}</td>
         <td style="font-family:var(--font-cond);font-weight:700;color:var(--turquesa);font-size:10px">${r[C.LOGIN]||'—'}</td>
         <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;font-size:10px">${r[C.CLIENTE]||'—'}</td>
         <td>${pill(getEst(r))}</td>
@@ -631,9 +693,9 @@ function renderAlertas(){
     <td style="font-family:var(--font-cond);font-size:11px">${r[C.LOGIN]||r[C.ID_SERV]||'—'}</td>
     <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;font-size:11px">${r[C.CLIENTE]||'—'}</td>
     <td>${pill(getEst(r))}</td>
-    <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${r[C.FE_PLAN]||'—'}</td>
+    <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${fmtDate(r[C.FE_PLAN])}</td>
     <td>${abDias(r._dG)}</td>
-    <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${r[C.FECHA_SOL]||'—'}</td>
+    <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${fmtDate(r[C.FECHA_SOL])}</td>
     <td>${abSol(r._dS)}</td>
   </tr>`).join(''):`<tr><td colspan="9" class="empty">Sin registros con fecha de plan</td></tr>`;
 
@@ -645,9 +707,9 @@ function renderAlertas(){
     <td style="font-family:var(--font-cond);font-size:11px">${r[C.LOGIN]||r[C.ID_SERV]||'—'}</td>
     <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;font-size:11px">${r[C.CLIENTE]||'—'}</td>
     <td>${pill(getEst(r))}</td>
-    <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${r[C.FECHA_SOL]||'—'}</td>
+    <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${fmtDate(r[C.FECHA_SOL])}</td>
     <td>${abSol(r._dS)}</td>
-    <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${r[C.FE_PLAN]||'—'}</td>
+    <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${fmtDate(r[C.FE_PLAN])}</td>
     <td>${abDias(r._dG)}</td>
   </tr>`).join(''):`<tr><td colspan="9" class="empty">Sin registros con fecha de solicitud</td></tr>`;
 }
@@ -699,7 +761,7 @@ function renderResumen(){
       <td><span class="pill p-replan">${d.rep}</span></td>
       <td><span class="pill p-asig">${d.asig}</span></td>
       <td style="font-family:var(--font-cond)">${d.cli.size}</td>
-      <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${ult}</td>
+      <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${fmtDate(ult)}</td>
     </tr>`;
   }).join(''):`<tr><td colspan="9" class="empty">Sin datos</td></tr>`;
 }
@@ -838,14 +900,14 @@ function renderDetalleTabla(){
       const obs2 = (r[C.OBS_REPLAN]||'—').slice(0,80) + (r[C.OBS_REPLAN]&&r[C.OBS_REPLAN].length>80?'…':'');
       return `<tr>
         <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
-        <td style="font-family:var(--font-cond);font-size:10px;color:var(--muted)">${r[C.FECHA_SOL]||'—'}</td>
+        <td style="font-family:var(--font-cond);font-size:10px;color:var(--muted)">${fmtDate(r[C.FECHA_SOL])}</td>
         <td style="font-family:var(--font-cond);font-weight:700;color:var(--turquesa)">${r[C.LOGIN]||'—'}</td>
         <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;font-size:11px">${r[C.CLIENTE]||'—'}</td>
         <td>${pill(getEst(r))}</td>
         <td style="font-size:11px;color:var(--muted)">${r[C.PRODUCTO]||'—'}</td>
         <td style="font-size:11px;color:var(--muted)">${r[C.TIPO_ORDEN]||'—'}</td>
         <td style="font-size:11px;color:var(--muted)">${r[C.SUCURSAL]||'—'}</td>
-        <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${r[C.FE_PLAN]||'—'}</td>
+        <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${fmtDate(r[C.FE_PLAN])}</td>
         <td>${abDias(dG)}</td>
         <td class="obs" style="white-space:normal;max-width:180px;font-size:10px;color:var(--muted);line-height:1.4" title="${r[C.OBS_PLAN]||''}">${obs1}</td>
         <td style="font-size:11px;color:var(--amarillo)">${r[C.MOTIVO]||'—'}</td>
