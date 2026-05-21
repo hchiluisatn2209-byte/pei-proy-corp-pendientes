@@ -17,31 +17,31 @@
   --text:    #ccd6f6;
   --text2:   #8892b0;
   --text3:   #4a6080;
-  --cyan:    #64ffda;
-  --blue:    #4fc3f7;
-  --magenta: #f472b6;
-  --orange:  #fb923c;
-  --green:   #4ade80;
-  --red:     #f87171;
-  --amber:   #fbbf24;
-  --purple:  #c084fc;
+  --cyan:    #00B0F0;
+  --blue:    #6EBEEB;
+  --magenta: #F10095;
+  --orange:  #FF6F42;
+  --green:   #00B0F0;
+  --red:     #F10095;
+  --amber:   #FFA700;
+  --purple:  #5D34B0;
   --font: 'Inter', sans-serif;
   --mono: 'JetBrains Mono', monospace;
   --r: 6px; --r2: 10px; --r3: 14px;
 
   /* Estado colores */
-  --c-plan:   #4ade80;
-  --c-det:    #f87171;
-  --c-replan: #fbbf24;
-  --c-asig:   #4fc3f7;
-  --c-pre:    #8892b0;
+  --c-plan:   #00B0F0;
+  --c-det:    #F10095;
+  --c-replan: #FFA700;
+  --c-asig:   #6EBEEB;
+  --c-pre:    #5D34B0;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;min-height:100vh}
 
 /* TOPBAR */
 .topbar{background:var(--bg2);border-bottom:2px solid var(--cyan);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:100}
-.logo-badge{background:var(--blue);color:#0d1b2e;font-weight:700;font-size:12px;padding:4px 10px;border-radius:var(--r);letter-spacing:1.5px}
+.logo-badge{background:var(--cyan);color:#fff;font-weight:700;font-size:12px;padding:4px 10px;border-radius:var(--r);letter-spacing:1.5px}
 .logo-title{font-size:16px;font-weight:700;color:var(--text);letter-spacing:.5px;text-transform:uppercase}
 .logo-title span{color:var(--cyan)}
 .logo-sub{font-size:9px;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin-top:1px}
@@ -51,8 +51,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 .corte-val{font-size:20px;font-weight:700;color:var(--amber);font-family:var(--mono);line-height:1}
 .btn{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:var(--r);border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:var(--font);font-size:12px;cursor:pointer;transition:all .15s}
 .btn:hover{background:var(--bg3);color:var(--text);border-color:var(--cyan)}
-.btn-primary{background:rgba(100,255,218,0.12);border-color:var(--cyan);color:var(--cyan)}
-.btn-primary:hover{background:rgba(100,255,218,0.22)}
+.btn-primary{background:rgba(0,176,240,0.12);border-color:var(--cyan);color:var(--cyan)}
+.btn-primary:hover{background:rgba(0,176,240,0.22)}
 
 /* STATUS */
 .status-bar{padding:6px 2rem;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:11px;color:var(--text2);flex-wrap:wrap}
@@ -92,10 +92,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 
 /* ALERTA BADGE */
 .alert-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:600;font-family:var(--mono)}
-.ab-ok    {background:rgba(74,222,128,0.12);color:#4ade80;border:1px solid rgba(74,222,128,.25)}
-.ab-warn  {background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,.25)}
-.ab-danger{background:rgba(248,113,113,0.15);color:#f87171;border:1px solid rgba(248,113,113,.3)}
-.ab-info  {background:rgba(79,195,247,0.12);color:#4fc3f7;border:1px solid rgba(79,195,247,.25)}
+.ab-ok    {background:rgba(0,176,240,0.12);color:#00B0F0;border:1px solid rgba(0,176,240,.25)}
+.ab-warn  {background:rgba(255,167,0,0.12);color:#FFA700;border:1px solid rgba(255,167,0,.25)}
+.ab-danger{background:rgba(241,0,149,0.15);color:#F10095;border:1px solid rgba(241,0,149,.3)}
+.ab-info  {background:rgba(110,190,235,0.12);color:#6EBEEB;border:1px solid rgba(110,190,235,.25)}
 
 /* CARDS GESTORES */
 .gestores-grid{display:flex;flex-direction:column;gap:10px;margin-bottom:1.4rem}
@@ -118,12 +118,12 @@ table{width:100%;border-collapse:collapse;font-size:12px}
 th{font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);padding:7px 10px;border-bottom:1px solid var(--border2);text-align:left;white-space:nowrap}
 td{padding:7px 10px;color:var(--text);border-bottom:1px solid var(--border);white-space:nowrap;vertical-align:middle}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:rgba(100,255,218,0.03)}
+tr:hover td{background:rgba(0,176,240,0.03)}
 .pill{display:inline-block;font-size:10px;padding:2px 9px;border-radius:99px;font-weight:600;white-space:nowrap}
-.p-plan  {background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.25)}
-.p-det   {background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.25)}
-.p-replan{background:rgba(251,191,36,.12);color:#fbbf24;border:1px solid rgba(251,191,36,.25)}
-.p-asig  {background:rgba(79,195,247,.12);color:#4fc3f7;border:1px solid rgba(79,195,247,.25)}
+.p-plan  {background:rgba(0,176,240,.12);color:#00B0F0;border:1px solid rgba(0,176,240,.25)}
+.p-det   {background:rgba(241,0,149,.12);color:#F10095;border:1px solid rgba(241,0,149,.25)}
+.p-replan{background:rgba(255,167,0,.12);color:#FFA700;border:1px solid rgba(255,167,0,.25)}
+.p-asig  {background:rgba(110,190,235,.12);color:#6EBEEB;border:1px solid rgba(110,190,235,.25)}
 .p-pre   {background:rgba(136,146,176,.12);color:#8892b0;border:1px solid rgba(136,146,176,.25)}
 .p-gray  {background:rgba(100,130,180,.1);color:var(--text2);border:1px solid var(--border)}
 
@@ -387,10 +387,10 @@ const C = {
 
 // Estados válidos — NO son texto libre del campo MOTIVO
 const ESTADOS_VALIDOS = ['Planificada','Detenido','Replanificada','AsignadoTarea','PrePlanificada'];
-const COL_ESTADO = { Planificada:'#4ade80', Detenido:'#f87171', Replanificada:'#fbbf24', AsignadoTarea:'#4fc3f7', PrePlanificada:'#8892b0' };
+const COL_ESTADO = { Planificada:'#00B0F0', Detenido:'#F10095', Replanificada:'#FFA700', AsignadoTarea:'#6EBEEB', PrePlanificada:'#8892b0' };
 const PILL_ESTADO= { Planificada:'p-plan', Detenido:'p-det', Replanificada:'p-replan', AsignadoTarea:'p-asig', PrePlanificada:'p-pre' };
 
-const PALETTE = ['#64ffda','#f472b6','#4ade80','#fbbf24','#c084fc','#fb923c','#4fc3f7','#a78bfa','#34d399','#e879f9'];
+const PALETTE = ['#00B0F0','#F10095','#00B0F0','#FFA700','#5D34B0','#FF6F42','#6EBEEB','#a78bfa','#34d399','#e879f9'];
 const GC  = 'rgba(120,180,255,0.08)';
 const TST = { color:'#4a6080', font:{size:10,family:"'JetBrains Mono',monospace"} };
 
@@ -688,11 +688,11 @@ function renderTendencia(){
   const dates=KNOWN_SHEETS.map(s=>s.fecha).filter(d=>sheetStats[d]);
   mkChart('ch-tend',{type:'line',
     data:{labels:dates,datasets:[
-      {label:'Total',     data:dates.map(d=>sheetStats[d].total),  borderColor:'#4fc3f7',backgroundColor:'rgba(79,195,247,.07)',tension:.3,pointRadius:4,fill:true,borderWidth:2},
-      {label:'Plan',      data:dates.map(d=>sheetStats[d].plan),   borderColor:'#4ade80',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:1.5},
-      {label:'Detenido',  data:dates.map(d=>sheetStats[d].det),    borderColor:'#f87171',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:1.5,borderDash:[4,3]},
-      {label:'Replan',    data:dates.map(d=>sheetStats[d].replan), borderColor:'#fbbf24',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:1.5,borderDash:[2,3]},
-      {label:'AsigTarea', data:dates.map(d=>sheetStats[d].asig),   borderColor:'#c084fc',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:1.5},
+      {label:'Total',     data:dates.map(d=>sheetStats[d].total),  borderColor:'#6EBEEB',backgroundColor:'rgba(110,190,235,.07)',tension:.3,pointRadius:4,fill:true,borderWidth:2},
+      {label:'Plan',      data:dates.map(d=>sheetStats[d].plan),   borderColor:'#00B0F0',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:1.5},
+      {label:'Detenido',  data:dates.map(d=>sheetStats[d].det),    borderColor:'#F10095',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:1.5,borderDash:[4,3]},
+      {label:'Replan',    data:dates.map(d=>sheetStats[d].replan), borderColor:'#FFA700',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:1.5,borderDash:[2,3]},
+      {label:'AsigTarea', data:dates.map(d=>sheetStats[d].asig),   borderColor:'#5D34B0',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:1.5},
     ]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
       scales:{x:{grid:{color:GC},ticks:{...TST,maxRotation:45,autoSkip:false}},y:{grid:{color:GC},ticks:TST}}}});
@@ -741,12 +741,12 @@ function renderAll(){
   renderGestores();
   renderAlertas();
   const gestData=topN(count(filtered.filter(tieneCarga),C.GESTOR),10);
-  renderChartHBar('ch-gestores',gestData,'#64ffda');
+  renderChartHBar('ch-gestores',gestData,'#00B0F0');
   // Estado Servicio — solo valores válidos
   const estCount=count(filtered,C.EST);
   const estData=topN(estCount,8);
   renderChartDoughnut('ch-estado',estData,'leg-estado');
-  renderChartHBar('ch-motivo',topN(count(filtered,C.MOTIVO),10),'#4ade80');
+  renderChartHBar('ch-motivo',topN(count(filtered,C.MOTIVO),10),'#00B0F0');
   renderChartDoughnut('ch-empresa',topN(count(filtered,C.EMPRESA),8),'leg-empresa');
   renderTendencia();
   renderTablaGestores();
