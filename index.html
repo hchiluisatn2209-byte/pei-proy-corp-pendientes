@@ -319,8 +319,9 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
   <!-- TAB CARGA -->
   <div id="tab-carga">
     <div class="section-title"><span class="dot-sec"></span>Carga por Gestor · Desglose de Estados</div>
-    <div id="nota-corte" style="display:none;margin-bottom:10px;padding:8px 14px;background:rgba(255,167,0,.08);border:1px solid rgba(255,167,0,.25);border-radius:8px;font-size:12px;color:var(--amarillo)">
-      ⚠ Filtro de corte activo — el conteo refleja solo la(s) fecha(s) seleccionada(s). Un gestor puede tener órdenes en otros cortes no visibles.
+    <div id="nota-corte" style="display:none;margin-bottom:10px;padding:10px 16px;background:rgba(255,167,0,.08);border:1px solid rgba(255,167,0,.25);border-radius:8px;font-size:13px;color:var(--amarillo);line-height:1.6">
+      ⚠ <strong>Filtro de corte activo</strong> — estás viendo solo la hoja del corte seleccionado.<br>
+      <span style="color:var(--muted);font-size:12px">Para ver la carga completa de un gestor en todos los cortes, quita el filtro de fecha (CORTE = Todas). El dashboard mostrará el último registro de cada login entre todas las hojas.</span>
     </div>
     <div class="gestores-grid" id="gestores-grid"><div class="empty">Cargando...</div></div>
 
@@ -763,6 +764,7 @@ function applyFilters(){
   const l  = sfGetVals('sf-enlace');
   const lg = sfGetVals('sf-login');
   const f  = sfGetVals('sf-fecha');
+
   filtered = allData.filter(r =>
     (!g  || g.has(r[C.GESTOR]))&&
     (!e  || e.has(getEst(r)))&&
@@ -771,13 +773,14 @@ function applyFilters(){
     (!lg || lg.has(r[C.LOGIN]))&&
     (!f  || f.has(r._fecha))
   );
-  // Si hay filtro de corte → mostrar la hoja tal cual (sin deduplicar)
-  // Si no hay filtro de corte → deduplicar entre hojas para evitar doble conteo
-  _hayFiltroCorteSingle = f !== null && f.size > 0;
+  // Con corte específico y sin gestor: mostrar datos de esa hoja (dedup desactivado)
+  // Con gestor o sin corte: deduplicar normalmente
+  _hayFiltroCorteSingle = (f !== null);
   const notaCorte = document.getElementById('nota-corte');
-  if(notaCorte) notaCorte.style.display = _hayFiltroCorteSingle ? '' : 'none';
+  if(notaCorte) notaCorte.style.display = (f !== null) ? '' : 'none';
   renderAll();
 }
+
 
 function clearFilters(){
   Object.keys(SF).forEach(id => { if(SF[id]) SF[id].selected.clear(); sfRenderChips(id); sfRenderList(id,''); });
@@ -935,7 +938,7 @@ function renderGestores(){  _gcIdCounter=0;
       <div class="gc-header">
         <div class="gc-name">👤 ${g}</div>
         <div class="gc-badges">
-          <span class="gc-badge gb-total">${tot} órdenes · ${d.cli.size} clientes · ${new Set(d.rows.filter(tieneCarga).map(r=>r[C.LOGIN]).filter(Boolean)).size} logins</span>
+          <span class="gc-badge gb-total">${tot} órdenes · ${d.cli.size} clientes · ${new Set(d.rows.filter(tieneCarga).map(r=>r[C.LOGIN]).filter(Boolean)).size} logins únicos</span>
           <span class="gc-badge ${alertCls}">${alertTxt}</span>
         </div>
       </div>
