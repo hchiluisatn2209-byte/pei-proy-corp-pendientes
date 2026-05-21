@@ -174,14 +174,16 @@ tr:hover td{background:rgba(0,176,240,.06)}
 .gc-toggle:hover{color:var(--turquesa)}
 .gc-toggle-arrow{font-size:10px;transition:transform .25s;display:inline-block}
 .gc-toggle.open .gc-toggle-arrow{transform:rotate(180deg)}
-.gc-detail{display:none;margin-top:10px;overflow-x:auto}
+.gc-detail{display:none;margin-top:12px;overflow-x:auto;overflow-y:auto;max-height:400px;border-radius:8px}
+.gc-detail::-webkit-scrollbar{width:5px;height:5px}
+.gc-detail::-webkit-scrollbar-track{background:rgba(0,0,0,.1)}
+.gc-detail::-webkit-scrollbar-thumb{background:rgba(0,176,240,.4);border-radius:99px}
 .gc-detail.open{display:block}
-.gc-detail table{width:100%;border-collapse:collapse;font-size:11px}
-.gc-detail th{font-family:var(--font-cond);font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;background:rgba(0,0,0,.18)}
-.gc-detail td{padding:6px 8px;color:#d0dff0;border-bottom:1px solid rgba(0,176,240,.06);white-space:nowrap;vertical-align:middle}
+.gc-detail table{width:100%;border-collapse:collapse}
+.gc-detail thead th{font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:7px 10px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;background:rgba(10,25,55,.95);position:sticky;top:0;z-index:2}
+.gc-detail td{padding:7px 10px;color:#d0dff0;border-bottom:1px solid rgba(0,176,240,.06);white-space:nowrap;vertical-align:middle}
 .gc-detail tr:last-child td{border-bottom:none}
-.gc-detail tr:hover td{background:rgba(0,176,240,.06)}
-.gc-detail td.obs{white-space:normal;max-width:180px;font-size:10px;color:var(--muted);line-height:1.4}
+.gc-detail tr:hover td{background:rgba(0,176,240,.07)}
 footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;letter-spacing:.5px;border-top:1px solid var(--border);margin-top:2rem}
 
 @media(max-width:768px){
@@ -635,22 +637,24 @@ function sfSearch(id){
 function sfRenderList(id, q){
   const inst = SF[id]; if(!inst) return;
   const list = document.getElementById(id+'-list'); if(!list) return;
-  const opts  = q ? inst.all.filter(v => v.toLowerCase().includes(q)) : inst.all;
+  const opts     = q ? inst.all.filter(v => v.toLowerCase().includes(q)) : inst.all;
   const allCount = inst.all.length;
   const selCount = inst.selected.size;
-  const allChecked = selCount === 0 || selCount === allCount;
+  // "Todos" = todos seleccionados
+  const allChecked    = selCount === allCount;
+  const noneChecked   = selCount === 0;
   const indeterminate = selCount > 0 && selCount < allCount;
 
   let html = `<div class="sf-opt sf-opt-all" onclick="sfToggleAll('${id}')">
     <input type="checkbox" id="${id}-chk-all" ${allChecked?'checked':''} readonly>
-    Todos (${allCount})${indeterminate?' <span style="color:var(--amarillo);font-size:9px">— '+selCount+' activos</span>':''}
+    Todos (${allCount})${indeterminate?' <span style="color:var(--amarillo);font-size:10px"> · '+selCount+' selec.</span>':''}
   </div>`;
 
-  opts.forEach((v,i) => {
+  opts.forEach(v => {
     const realIdx  = inst.all.indexOf(v);
-    const isChecked = selCount === 0 || inst.selected.has(v);
-    const dimCls   = selCount > 0 && !inst.selected.has(v) ? 'dim' : '';
-    const selCls   = inst.selected.has(v) ? 'selected' : '';
+    const isChecked = inst.selected.has(v);
+    const dimCls   = !isChecked && selCount > 0 ? 'dim' : '';
+    const selCls   = isChecked ? 'selected' : '';
     const display  = v.length > 40 ? v.slice(0,38)+'…' : v;
     html += `<div class="sf-opt ${selCls} ${dimCls}" onclick="sfToggleByIdx('${id}',${realIdx})">
       <input type="checkbox" ${isChecked?'checked':''} readonly>
@@ -661,7 +665,7 @@ function sfRenderList(id, q){
   list.innerHTML = html;
   setTimeout(()=>{
     const chkAll = document.getElementById(id+'-chk-all');
-    if(chkAll) chkAll.indeterminate = indeterminate;
+    if(chkAll){ chkAll.checked = allChecked; chkAll.indeterminate = indeterminate; }
   }, 0);
 }
 
@@ -677,8 +681,6 @@ function sfToggleVal(id, val){
   const inst = SF[id]; if(!inst) return;
   if(inst.selected.has(val)) inst.selected.delete(val);
   else inst.selected.add(val);
-  // Si queda vacío, limpiar todo (= sin filtro)
-  if(inst.selected.size === 0 || inst.selected.size === inst.all.length) inst.selected.clear();
   sfRenderList(id, document.getElementById(id+'-search')?.value || '');
   sfRenderChips(id);
   applyFilters();
@@ -686,12 +688,12 @@ function sfToggleVal(id, val){
 
 function sfToggleAll(id){
   const inst = SF[id]; if(!inst) return;
-  if(inst.selected.size === 0){
-    // Sin selección = todos activos → seleccionar TODOS (para poder deseleccionar uno)
-    inst.all.forEach(v => inst.selected.add(v));
-  } else {
-    // Hay selección → limpiar (volver a "todos")
+  if(inst.selected.size === inst.all.length){
+    // Ya todos seleccionados → limpiar (sin filtro activo)
     inst.selected.clear();
+  } else {
+    // Seleccionar TODOS
+    inst.all.forEach(v => inst.selected.add(v));
   }
   const q = document.getElementById(id+'-search')?.value || '';
   sfRenderList(id, q);
@@ -700,27 +702,40 @@ function sfToggleAll(id){
 }
 
 function sfRenderChips(id){
-  const inst = SF[id]; if(!inst) return;
+  const inst  = SF[id]; if(!inst) return;
   const chips = document.getElementById(id+'-chips'); if(!chips) return;
-  if(inst.selected.size === 0){
+  const inp   = document.getElementById(id+'-inp');
+  const sel   = inst.selected.size;
+  const total = inst.all.length;
+  // Sin selección → placeholder "Todos"
+  if(sel === 0){
     chips.innerHTML = '';
+    if(inp) inp.placeholder = 'Todos';
     return;
   }
-  const arr = [...inst.selected];
+  if(inp) inp.placeholder = '';
+  // Todos seleccionados → chip especial
+  if(sel === total){
+    chips.innerHTML = '<span class="sf-chip" style="background:rgba(0,176,240,.28)">Todos ✓</span>';
+    return;
+  }
+  // Selección parcial → chips individuales
+  const arr   = [...inst.selected];
   const shown = arr.slice(0,2);
-  const extra = arr.length > 2 ? arr.length - 2 : 0;
-  chips.innerHTML = shown.map(v =>
-    `<span class="sf-chip">${v.length>14?v.slice(0,13)+'…':v}
-      <span class="sf-chip-x" onclick="event.stopPropagation();sfToggleVal('${id}','${v.replace(/'/g,"\'")}')">×</span>
-    </span>`
-  ).join('') + (extra ? `<span class="sf-chip">+${extra}</span>` : '');
+  const extra = arr.length - shown.length;
+  chips.innerHTML = shown.map(v => {
+    const idx = inst.all.indexOf(v);
+    return '<span class="sf-chip">' + (v.length>14 ? v.slice(0,13)+'…' : v) +
+      '<span class="sf-chip-x" onclick="event.stopPropagation();sfToggleByIdx(\''+id+'\','+idx+')">×</span></span>';
+  }).join('') + (extra ? '<span class="sf-chip" style="background:rgba(0,176,240,.15)">+'+extra+'</span>' : '');
 }
+
+
 
 function sfGetVals(id){
   const inst = SF[id];
-  if(!inst || inst.selected.size === 0) return null; // sin filtro = todos
-  if(inst.selected.size === inst.all.length) return null; // todos seleccionados = sin filtro
-  return inst.selected;
+  if(!inst || inst.selected.size === 0) return null; // vacío = sin filtro
+  return inst.selected; // filtrar solo por los seleccionados
 }
 
 // Inicializar los 6 filtros
