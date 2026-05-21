@@ -467,7 +467,7 @@ const KNOWN_SHEETS = [
   {fecha:'18-05-26',gid:1356018131},
   {fecha:'19-05-26',gid:1190443317},
   {fecha:'20-05-26',gid:1609901699},
- {fecha:'21-05-26',gid:629799442},
+  {fecha:'21-05-26',gid:629799442},
   // ▼ AGREGAR NUEVAS HOJAS AQUÍ ▼
   // { fecha: '21-05-26', gid: PEGAR_GID_AQUI },
 ];
@@ -781,18 +781,37 @@ function clearFilters(){
   filtered=[...allData]; renderAll();
 }
 
+// ── DEDUPLICACIÓN CENTRAL ─────────────────────────────────────────────
+// Para cada LOGIN, conserva solo el registro del corte MÁS RECIENTE.
+// Si un mismo login aparece en hojas del 01-05, 08-05 y 21-05,
+// solo cuenta la fila del 21-05 (último corte disponible en filtered).
+function getDedupData(data){
+  const loginLatest = {};
+  data.forEach(r => {
+    const login = r[C.LOGIN];
+    if(!login) return;
+    const prev = loginLatest[login];
+    if(!prev || r._fecha > prev._fecha) loginLatest[login] = r;
+  });
+  // Registros sin login se incluyen tal cual (no tienen duplicados por login)
+  const sinLogin = data.filter(r => !r[C.LOGIN]);
+  return Object.values(loginLatest).concat(sinLogin);
+}
+
 // ── KPIs ───────────────────────────────────────────────────────────────
 function renderKPIs(){
-  const n=filtered.length;
-  const gest=new Set(filtered.filter(tieneCarga).map(r=>r[C.GESTOR]).filter(Boolean)).size;
-  const plan=filtered.filter(esPlan).length;
-  const det=filtered.filter(esDet).length;
-  const rep=filtered.filter(esRep).length;
-  const asig=filtered.filter(esAsig).length;
-  const pre=filtered.filter(esPre).length;
-  const cli=new Set(filtered.map(r=>r[C.CLIENTE]).filter(Boolean)).size;
-  const hoj=new Set(filtered.map(r=>r._fecha)).size;
-  const pct=v=>n?Math.round(v/n*100)+'%':'—';
+  // Datos deduplicados: un registro por login (el más reciente)
+  const dd   = getDedupData(filtered);
+  const n    = dd.length;
+  const gest = new Set(dd.filter(tieneCarga).map(r=>r[C.GESTOR]).filter(Boolean)).size;
+  const plan = dd.filter(esPlan).length;
+  const det  = dd.filter(esDet).length;
+  const rep  = dd.filter(esRep).length;
+  const asig = dd.filter(esAsig).length;
+  const pre  = dd.filter(esPre).length;
+  const cli  = new Set(dd.map(r=>r[C.CLIENTE]).filter(Boolean)).size;
+  const hoj  = new Set(filtered.map(r=>r._fecha)).size; // hojas reales cargadas
+  const pct  = v => n ? Math.round(v/n*100)+'%' : '—';
   document.getElementById('k-total').textContent=n.toLocaleString('es-EC');
   document.getElementById('k-gest').textContent=gest;
   document.getElementById('k-plan').textContent=plan.toLocaleString('es-EC');
@@ -945,7 +964,9 @@ function renderGestores(){  _gcIdCounter=0;
 
 // ── ALERTAS ────────────────────────────────────────────────────────────
 function renderAlertas(){
-  const rows1=filtered.filter(tieneCarga)
+  // Usar datos deduplicados: un registro por login (el más reciente)
+  const dd1 = getDedupData(filtered);
+  const rows1=dd1.filter(tieneCarga)
     .map(r=>({...r,_dG:diasDesde(r[C.FE_PLAN]),_dS:diasDesde(r[C.FECHA_SOL])}))
     .filter(r=>r._dG!==null).sort((a,b)=>b._dG-a._dG).slice(0,100);
   document.getElementById('tbl-gest').innerHTML=rows1.length?rows1.map((r,i)=>`<tr>
@@ -961,7 +982,7 @@ function renderAlertas(){
     <td>${abSol(r._dS)}</td>
   </tr>`).join(''):`<tr><td colspan="10" class="empty">Sin registros con fecha de plan</td></tr>`;
 
-  const rows2=filtered.map(r=>({...r,_dS:diasDesde(r[C.FECHA_SOL]),_dG:diasDesde(r[C.FE_PLAN])}))
+  const rows2=dd1.map(r=>({...r,_dS:diasDesde(r[C.FECHA_SOL]),_dG:diasDesde(r[C.FE_PLAN])}))
     .filter(r=>r._dS!==null).sort((a,b)=>b._dS-a._dS).slice(0,100);
   document.getElementById('tbl-sol').innerHTML=rows2.length?rows2.map((r,i)=>`<tr>
     <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
@@ -1002,8 +1023,9 @@ function renderTend(){
     scales:{x:{grid:{color:GC},ticks:{...TST,maxRotation:45,autoSkip:false}},y:{grid:{color:GC},ticks:TST}}}});
 }
 function renderResumen(){
+  const ddR = getDedupData(filtered);
   const map={};
-  filtered.forEach(r=>{
+  ddR.forEach(r=>{
     const g=r[C.GESTOR]||'Sin gestor';
     if(!map[g])map[g]={plan:0,det:0,rep:0,asig:0,cli:new Set(),fechas:[]};
     if(esPlan(r))map[g].plan++;if(esDet(r))map[g].det++;if(esRep(r))map[g].rep++;if(esAsig(r))map[g].asig++;
@@ -1036,16 +1058,8 @@ let _detalleEstadoFil   = 'all';
 let _gestorMapCache     = {};
 
 function renderTopGestores(){
-  // Deduplicar por LOGIN — mismo criterio que renderGestores
-  const loginLatest2 = {};
-  filtered.forEach(r => {
-    if(!tieneCarga(r)) return;
-    const login = r[C.LOGIN];
-    if(!login) return;
-    if(!loginLatest2[login] || r._fecha > loginLatest2[login]._fecha) loginLatest2[login] = r;
-  });
-  const sinLogin2 = filtered.filter(r => !r[C.LOGIN] && tieneCarga(r));
-  const dedupTop  = Object.values(loginLatest2).concat(sinLogin2);
+  // Dedup central: un login = el registro del corte más reciente
+  const dedupTop = getDedupData(filtered).filter(tieneCarga);
 
   const map = {};
   dedupTop.forEach(r => {
