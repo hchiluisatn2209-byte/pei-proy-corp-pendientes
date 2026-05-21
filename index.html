@@ -214,6 +214,9 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
   <span class="filter-label">Tipo Enlace</span>
   <select class="filter-select" id="fil-enlace" onchange="applyFilters()"><option value="">Todos</option></select>
   <div class="filter-sep"></div>
+  <span class="filter-label">Login</span>
+  <select class="filter-select" id="fil-login" onchange="applyFilters()"><option value="">Todos</option></select>
+  <div class="filter-sep"></div>
   <span class="filter-label">Corte</span>
   <select class="filter-select" id="fil-fecha" onchange="applyFilters()"><option value="">Todas</option></select>
   <button class="filter-reset" onclick="clearFilters()">✕ Limpiar filtros</button>
@@ -394,17 +397,34 @@ const SHEET_ID = '1e0LPzPCBzAuO7HXpYAYSo7ogXQg0rau5-CFrGUfyzaE';
 // 2. Pegar el código del proxy (ver comentario en loadAll)
 // 3. Publicar como Web App (Ejecutar como: yo, Acceso: Cualquiera)
 // 4. Pegar la URL aquí:
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxzPNG5Xs2olpEBIKc8yi1xu6kadzBFf0-OlMRIauSRV5JyZMVotcw5ZO4TxEGwzBbU/exec'; // Ej: 'https://script.google.com/macros/s/XXXX/exec'
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzmLDshSjvWxoTO3eSD7Wr4rgBvXgmm0Rj2Bkzic8sOZBsKiedxYdoDSIi_humRGQl6/exec'; // Ej: 'https://script.google.com/macros/s/XXXX/exec'
+// ── CÓMO AGREGAR UNA NUEVA HOJA ────────────────────────────────────────
+// 1. Abre el Google Sheets y haz clic en la pestaña de la nueva hoja
+// 2. Mira la URL del navegador: ...spreadsheets/d/ID/edit#gid=XXXXXXXXX
+//    El número después de #gid= es el GID que necesitas
+// 3. Agrega una línea al final del array con el formato:
+//    { fecha: 'DD-MM-YY', gid: NUMERO_GID },
+// ────────────────────────────────────────────────────────────────────────
 const KNOWN_SHEETS = [
-  {fecha:'01-05-26',gid:14159634},{fecha:'02-05-26',gid:982750352},
-  {fecha:'04-05-26',gid:1948937092},{fecha:'05-05-26',gid:1425746571},
-  {fecha:'06-05-26',gid:1534934661},{fecha:'07-05-26',gid:1929186148},
-  {fecha:'08-05-26',gid:1851077306},{fecha:'09-05-26',gid:782079783},
-  {fecha:'11-05-26',gid:770270231},{fecha:'12-05-26',gid:1958392492},
-  {fecha:'13-05-26',gid:1613207016},{fecha:'14-05-26',gid:717980391},
-  {fecha:'15-05-26',gid:268050003},{fecha:'16-05-26',gid:422174396},
-  {fecha:'18-05-26',gid:1356018131},{fecha:'19-05-26',gid:1190443317},
+  {fecha:'01-05-26',gid:14159634},
+  {fecha:'02-05-26',gid:982750352},
+  {fecha:'04-05-26',gid:1948937092},
+  {fecha:'05-05-26',gid:1425746571},
+  {fecha:'06-05-26',gid:1534934661},
+  {fecha:'07-05-26',gid:1929186148},
+  {fecha:'08-05-26',gid:1851077306},
+  {fecha:'09-05-26',gid:782079783},
+  {fecha:'11-05-26',gid:770270231},
+  {fecha:'12-05-26',gid:1958392492},
+  {fecha:'13-05-26',gid:1613207016},
+  {fecha:'14-05-26',gid:717980391},
+  {fecha:'15-05-26',gid:268050003},
+  {fecha:'16-05-26',gid:422174396},
+  {fecha:'18-05-26',gid:1356018131},
+  {fecha:'19-05-26',gid:1190443317},
   {fecha:'20-05-26',gid:1609901699},
+  // ▼ AGREGAR NUEVAS HOJAS AQUÍ ▼
+  // { fecha: '21-05-26', gid: PEGAR_GID_AQUI },
 ];
 const C={GESTOR:'NOMBRE_USR_ULT_PLAN',CLIENTE:'CLIENTE',FE_PLAN:'FE ULT PLAN',LOGIN:'LOGIN',EST:'ESTADO SERVICIO',MOTIVO:'MOTIVO',EMPRESA:'TIPO_EMPRESA',FECHA_SOL:'FECHA_SOLICITUD',ENLACE:'TIPO ENLACE',ID_SERV:'ID_SERVICIO',PRODUCTO:'PRODUCTO',TIPO_ORDEN:'TIPO ÓRDEN',SUCURSAL:'TÉCNICA SUCURSAL',OBS_PLAN:'OBS_ULT_PLAN',OBS_REPLAN:'ULT_OBS_REPLANIFICADA',CONTRATO:'ESTADO_CONTRATO',VENDEDOR:'VENDEDOR'};
 const PALETTE=['#00B0F0','#FF44B0','#FF6F42','#FFA700','#8B6FE8','#6EBEEB','#34D399','#FF9A44','#AA7FD0','#64B4F5'];
@@ -424,30 +444,41 @@ let allData=[],filtered=[],charts={},sheetStats={};
 const appsScriptUrl = gid => `${APPS_SCRIPT_URL}?gid=${gid}`;
 function parseLine(l){const v=[];let c='',q=false;for(const ch of l){if(ch==='"')q=!q;else if(ch===','&&!q){v.push(c);c='';}else c+=ch;}v.push(c);return v.map(s=>s.replace(/^"|"$/g,'').trim());}
 function parseCSV(txt){const lines=txt.split('\n').filter(l=>l.trim());if(lines.length<2)return[];const h=parseLine(lines[0]);return lines.slice(1).map(l=>{const v=parseLine(l);const o={};h.forEach((k,i)=>{o[k.trim()]=(v[i]||'').trim();});return o;}).filter(r=>Object.values(r).some(v=>v));}
-// Parsea múltiples formatos: DD/MM/YYYY, DD-MM-YYYY, DD-MM-YY, YYYY-MM-DD, M/D/YYYY, timestamp numérico
+// Parsea múltiples formatos de fecha que puede enviar Google Sheets/Apps Script
 function parseDate(s){
-  if(!s||!s.trim())return null;
+  if(!s||!s.trim()||s.trim()==='—'||s.trim()==='-')return null;
   const t=s.trim();
   let m;
   // DD/MM/YYYY
-  m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m)return new Date(+m[3],+m[2]-1,+m[1]);
+  m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m)return new Date(+m[3],+m[2]-1,+m[1]);
+  // D/M/YYYY o M/D/YYYY — intentar ambos; si mes>12 asumir D/M
+  m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m){ const a=+m[1],b=+m[2],y=+m[3]; return a>12?new Date(y,b-1,a):new Date(y,a-1,b); }
   // DD-MM-YYYY
-  m=t.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);if(m)return new Date(+m[3],+m[2]-1,+m[1]);
+  m=t.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if(m)return new Date(+m[3],+m[2]-1,+m[1]);
   // DD-MM-YY
-  m=t.match(/^(\d{1,2})-(\d{1,2})-(\d{2})$/);if(m)return new Date(2000+ +m[3],+m[2]-1,+m[1]);
+  m=t.match(/^(\d{1,2})-(\d{1,2})-(\d{2})$/);
+  if(m)return new Date(2000+ +m[3],+m[2]-1,+m[1]);
   // YYYY-MM-DD (ISO)
-  m=t.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return new Date(+m[1],+m[2]-1,+m[3]);
-  // Número serial de Excel (días desde 1900-01-01)
+  m=t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m)return new Date(+m[1],+m[2]-1,+m[3]);
+  // Número serial de Excel
   if(/^\d+(\.\d+)?$/.test(t)){
     const serial=Math.floor(parseFloat(t));
     if(serial>40000&&serial<60000){
-      const d=new Date((serial-25569)*86400000);
+      const d=new Date(Date.UTC(1899,11,30)+serial*86400000);
       return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());
     }
   }
-  // Intentar Date nativo como último recurso
+  // "Mon Jan 01 2026..." formato toString de Date de Apps Script
+  m=t.match(/(\w+)\s+(\d{1,2})\s+(\d{4})/);
+  if(m){ const nd=new Date(t); if(!isNaN(nd.getTime()))return new Date(nd.getFullYear(),nd.getMonth(),nd.getDate()); }
+  // Último recurso: Date nativo
   const nd=new Date(t);
-  return isNaN(nd.getTime())?null:nd;
+  if(!isNaN(nd.getTime()))return new Date(nd.getFullYear(),nd.getMonth(),nd.getDate());
+  return null;
 }
 
 // Formatea fecha a DD/MM/YYYY
@@ -527,11 +558,19 @@ function applyFilters(){
   const t=document.getElementById('fil-empresa').value;
   const l=document.getElementById('fil-enlace').value;
   const f=document.getElementById('fil-fecha').value;
-  filtered=allData.filter(r=>(!g||r[C.GESTOR]===g)&&(!e||getEst(r)===e)&&(!t||r[C.EMPRESA]===t)&&(!l||r[C.ENLACE]===l)&&(!f||r._fecha===f));
+  const lg=document.getElementById('fil-login').value;
+  filtered=allData.filter(r=>
+    (!g  || r[C.GESTOR]===g)&&
+    (!e  || getEst(r)===e)&&
+    (!t  || r[C.EMPRESA]===t)&&
+    (!l  || r[C.ENLACE]===l)&&
+    (!f  || r._fecha===f)&&
+    (!lg || r[C.LOGIN]===lg)
+  );
   renderAll();
 }
 function clearFilters(){
-  ['fil-gestor','fil-estado','fil-empresa','fil-enlace','fil-fecha'].forEach(id=>document.getElementById(id).value='');
+  ['fil-gestor','fil-estado','fil-empresa','fil-enlace','fil-fecha','fil-login'].forEach(id=>document.getElementById(id).value='');
   filtered=[...allData];renderAll();
 }
 
@@ -1045,11 +1084,12 @@ async function loadAll(){
     setProgress(ok+err,KNOWN_SHEETS.length);
     document.getElementById('st-detail').textContent=`${ok}/${KNOWN_SHEETS.length} hojas`;
   });
-  populateSel('fil-gestor',allData.map(r=>r[C.GESTOR]));
-  populateSel('fil-estado',allData.map(r=>getEst(r)));
-  populateSel('fil-empresa',allData.map(r=>r[C.EMPRESA]));
-  populateSel('fil-enlace',allData.map(r=>r[C.ENLACE]));
-  populateSel('fil-fecha',allData.map(r=>r._fecha));
+  populateSel('fil-gestor', allData.map(r=>r[C.GESTOR]));
+  populateSel('fil-estado',  allData.map(r=>getEst(r)));
+  populateSel('fil-empresa', allData.map(r=>r[C.EMPRESA]));
+  populateSel('fil-enlace',  allData.map(r=>r[C.ENLACE]));
+  populateSel('fil-fecha',   allData.map(r=>r._fecha));
+  populateSel('fil-login',   allData.map(r=>r[C.LOGIN]));
   filtered=[...allData];renderAll();
   const now=new Date();
   const horaFmt=now.toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'});
