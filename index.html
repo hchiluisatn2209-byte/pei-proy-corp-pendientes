@@ -319,9 +319,8 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
   <!-- TAB CARGA -->
   <div id="tab-carga">
     <div class="section-title"><span class="dot-sec"></span>Carga por Gestor · Desglose de Estados</div>
-    <div id="nota-corte" style="display:none;margin-bottom:10px;padding:10px 16px;background:rgba(0,176,240,.07);border:1px solid rgba(0,176,240,.2);border-radius:8px;font-size:13px;color:var(--azul-c);line-height:1.6">
-      📅 <strong>Corte activo</strong> — mostrando todos los registros de la hoja seleccionada.
-      <span style="color:var(--muted);font-size:12px"> Sin corte = deduplicación entre hojas (un login = su registro más reciente).</span>
+    <div id="nota-corte" style="display:none;margin-bottom:10px;padding:8px 16px;background:rgba(0,176,240,.07);border:1px solid rgba(0,176,240,.2);border-radius:8px;font-size:13px;color:var(--azul-c)">
+      📅 <strong>Corte activo</strong> — mostrando registros de la hoja seleccionada.
     </div>
     <div class="gestores-grid" id="gestores-grid"><div class="empty">Cargando...</div></div>
 
@@ -483,7 +482,6 @@ const EST_PILL={Planificada:'p-plan',Detenido:'p-det',Replanificada:'p-replan',A
 
 // ── ESTADO ─────────────────────────────────────────────────────────────
 let allData=[],filtered=[],charts={},sheetStats={};
-let _hayFiltroCorteSingle = false; // true cuando el usuario filtra por UN corte específico
 
 // ── UTILS ──────────────────────────────────────────────────────────────
 // ── URLS ───────────────────────────────────────────────────────────────
@@ -774,11 +772,6 @@ function applyFilters(){
     (!f  || f.has(r._fecha))
   );
 
-  // Si hay filtro de CORTE → mostrar datos exactos de esa hoja SIN deduplicar
-  // (Romina en 21-05-26 = 12 registros en esa hoja → mostrar 12)
-  // Si NO hay corte → deduplicar entre hojas para evitar doble conteo
-  _hayFiltroCorteSingle = (f !== null);
-
   const notaCorte = document.getElementById('nota-corte');
   if(notaCorte) notaCorte.style.display = (f !== null) ? '' : 'none';
   renderAll();
@@ -788,32 +781,16 @@ function applyFilters(){
 function clearFilters(){
   Object.keys(SF).forEach(id => { if(SF[id]) SF[id].selected.clear(); sfRenderChips(id); sfRenderList(id,''); });
   filtered=[...allData];
-  _hayFiltroCorteSingle = false;
   const notaCorte = document.getElementById('nota-corte');
   if(notaCorte) notaCorte.style.display = 'none';
   renderAll();
 }
 
-// ── DEDUPLICACIÓN CENTRAL ─────────────────────────────────────────────
-// Para cada LOGIN, conserva solo el registro del corte MÁS RECIENTE.
-// Si un mismo login aparece en hojas del 01-05, 08-05 y 21-05,
-// solo cuenta la fila del 21-05 (último corte disponible en filtered).
+// ── SIN DEDUPLICACIÓN ────────────────────────────────────────────────
+// Los datos se muestran exactamente como están en filtered.
+// El usuario controla qué ve mediante los filtros (gestor, corte, estado, etc.)
 function getDedupData(data){
-  // Si el usuario filtró por corte específico: mostrar todos los registros de esa hoja
-  // (un login puede tener varias órdenes en el mismo corte = filas distintas)
-  if(_hayFiltroCorteSingle) return data;
-
-  // Sin filtro de corte: deduplicar por login → solo el corte más reciente
-  // evita contar el mismo login múltiples veces entre hojas
-  const loginLatest = {};
-  data.forEach(r => {
-    const login = r[C.LOGIN];
-    if(!login) return;
-    const prev = loginLatest[login];
-    if(!prev || r._fecha > prev._fecha) loginLatest[login] = r;
-  });
-  const sinLogin = data.filter(r => !r[C.LOGIN]);
-  return Object.values(loginLatest).concat(sinLogin);
+  return data; // siempre datos exactos, sin modificar
 }
 
 // ── KPIs ───────────────────────────────────────────────────────────────
