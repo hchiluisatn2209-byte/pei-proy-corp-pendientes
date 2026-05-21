@@ -6,7 +6,7 @@
 <title>Dashboard Ejecutivo · Órdenes Pendientes PYL | GTN</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&family=Barlow+Condensed:wght@600;700;800&display=swap');
 :root{
   --navy:#1B3A70;--navy-dark:#162d5e;--navy-mid:#1e4080;
   --turquesa:#00B0F0;--turquesa2:#00B5CB;
@@ -20,10 +20,10 @@
   --card-bg:rgba(27,58,112,0.80);
   --border:rgba(0,176,240,0.25);
   --font-cond:'Barlow Condensed',sans-serif;
-  --font:'Barlow',sans-serif;
+  --font:'Lato',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font);background:linear-gradient(160deg,#162d5e 0%,#1B3A70 50%,#1e4a85 100%);background-attachment:fixed;color:#fff;min-height:100vh;overflow-x:hidden}
+body{font-family:var(--font);font-size:15px;background:linear-gradient(160deg,#162d5e 0%,#1B3A70 50%,#1e4a85 100%);background-attachment:fixed;color:#fff;min-height:100vh;overflow-x:hidden}
 
 /* ── HEADER ── */
 header{background:linear-gradient(90deg,#162d5e,#1B3A70 70%,#245090);border-bottom:3px solid var(--turquesa);padding:14px 36px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 4px 28px rgba(0,0,0,.55)}
@@ -49,21 +49,21 @@ header{background:linear-gradient(90deg,#162d5e,#1B3A70 70%,#245090);border-bott
 
 /* ── FILTER BAR ── */
 .filter-bar{background:rgba(22,45,94,.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:10px 36px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:sticky;top:71px;z-index:190}
-.filter-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--turquesa);font-weight:600;white-space:nowrap}
+.filter-label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--turquesa);font-weight:700;white-space:nowrap}
 .filter-sep{width:1px;height:22px;background:var(--border);flex-shrink:0}
 .filter-reset{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;color:var(--muted);border:1px solid var(--border);border-radius:20px;padding:5px 12px;transition:all .18s;background:transparent}
 .filter-reset:hover{color:#fff;border-color:var(--turquesa)}
 
 /* ── SEARCHABLE DROPDOWN ── */
 .sf-wrap{position:relative;display:inline-flex;flex-direction:column}
-.sf-input-row{display:flex;align-items:center;background:rgba(255,255,255,.07);border:1.5px solid rgba(0,176,240,.35);color:#fff;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;font-family:var(--font);cursor:pointer;transition:border-color .18s;min-width:110px;max-width:200px;gap:4px}
+.sf-input-row{display:flex;align-items:center;background:rgba(255,255,255,.07);border:1.5px solid rgba(0,176,240,.35);color:#fff;border-radius:20px;padding:5px 12px;font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;transition:border-color .18s;min-width:120px;max-width:220px;gap:4px}
 .sf-input-row:focus-within{border-color:var(--turquesa)}
 .sf-input{background:transparent;border:none;color:#fff;outline:none;font-size:11px;font-family:var(--font);width:100%;min-width:60px;cursor:text}
 .sf-input::placeholder{color:var(--muted)}
 .sf-arrow{color:var(--muted);font-size:9px;flex-shrink:0;transition:transform .18s;pointer-events:none}
 .sf-wrap.open .sf-arrow{transform:rotate(180deg)}
 .sf-chips{display:flex;flex-wrap:wrap;gap:3px;max-width:180px}
-.sf-chip{display:inline-flex;align-items:center;gap:3px;background:rgba(0,176,240,.2);border:1px solid rgba(0,176,240,.4);color:var(--turquesa);border-radius:99px;padding:1px 7px;font-size:10px;font-weight:600;white-space:nowrap}
+.sf-chip{display:inline-flex;align-items:center;gap:3px;background:rgba(0,176,240,.2);border:1px solid rgba(0,176,240,.4);color:var(--turquesa);border-radius:99px;padding:2px 8px;font-size:12px;font-weight:600;white-space:nowrap}
 .sf-chip-x{cursor:pointer;font-size:11px;line-height:1;opacity:.7}
 .sf-chip-x:hover{opacity:1}
 .sf-dropdown{position:absolute;top:calc(100% + 4px);left:0;min-width:220px;max-width:320px;background:#1a3f7a;border:1.5px solid rgba(0,176,240,.35);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:999;overflow:hidden;display:none}
@@ -75,7 +75,7 @@ header{background:linear-gradient(90deg,#162d5e,#1B3A70 70%,#245090);border-bott
 .sf-list::-webkit-scrollbar{width:4px}
 .sf-list::-webkit-scrollbar-track{background:transparent}
 .sf-list::-webkit-scrollbar-thumb{background:rgba(0,176,240,.3);border-radius:99px}
-.sf-opt{padding:7px 14px;font-size:11px;color:#d0dff0;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .12s}
+.sf-opt{padding:8px 14px;font-size:13px;color:#d0dff0;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .12s}
 .sf-opt:hover{background:rgba(0,176,240,.12)}
 .sf-opt.selected{color:var(--turquesa);background:rgba(0,176,240,.1)}
 .sf-opt input[type=checkbox]{accent-color:var(--turquesa);width:13px;height:13px;flex-shrink:0}
@@ -83,13 +83,13 @@ header{background:linear-gradient(90deg,#162d5e,#1B3A70 70%,#245090);border-bott
 
 /* ── TABS ── */
 .tabs-bar{padding:16px 36px 0;display:flex;gap:0;border-bottom:1px solid var(--border)}
-.tab{padding:8px 22px;font-family:var(--font-cond);font-weight:700;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px;transition:all .15s}
+.tab{padding:10px 24px;font-family:var(--font-cond);font-weight:700;font-size:14px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px;transition:all .15s}
 .tab:hover{color:#fff}
 .tab.active{color:var(--turquesa);border-bottom-color:var(--turquesa)}
 
 /* ── MAIN ── */
 main{padding:22px 36px 44px;max-width:1440px;margin:0 auto}
-.section-title{font-family:var(--font-cond);font-weight:700;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--turquesa);margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.section-title{font-family:var(--font-cond);font-weight:700;font-size:13px;letter-spacing:2.5px;text-transform:uppercase;color:var(--turquesa);margin-bottom:14px;display:flex;align-items:center;gap:10px}
 .section-title::after{content:'';flex:1;height:1px;background:var(--border)}
 .dot-sec{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,var(--turquesa),#5D34B0);flex-shrink:0}
 
@@ -100,15 +100,15 @@ main{padding:22px 36px 44px;max-width:1440px;margin:0 auto}
 .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--ak,var(--turquesa))}
 .kpi-card::after{content:'';position:absolute;width:80px;height:80px;border-radius:50%;background:var(--ak,var(--turquesa));opacity:.07;right:-18px;top:-18px}
 .kpi-lbl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-weight:600}
-.kpi-val{font-family:var(--font-cond);font-weight:800;font-size:30px;color:var(--ak,var(--turquesa));line-height:1}
-.kpi-sub{font-size:10px;color:var(--muted);margin-top:5px;font-family:var(--font-cond);letter-spacing:.5px}
+.kpi-val{font-family:var(--font-cond);font-weight:800;font-size:34px;color:var(--ak,var(--turquesa));line-height:1}
+.kpi-sub{font-size:12px;color:var(--muted);margin-top:6px;font-family:var(--font);}
 
 /* ── CARDS GESTORES ── */
 .gestores-grid{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
 .gestor-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:16px 20px;transition:transform .18s,box-shadow .18s;backdrop-filter:blur(6px);box-shadow:0 2px 16px rgba(0,0,0,.2)}
 .gestor-card:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.4)}
 .gc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
-.gc-name{font-family:var(--font-cond);font-weight:700;font-size:15px;letter-spacing:.5px;color:var(--turquesa);display:flex;align-items:center;gap:8px}
+.gc-name{font-family:var(--font-cond);font-weight:700;font-size:17px;letter-spacing:.5px;color:var(--turquesa);display:flex;align-items:center;gap:8px}
 .gc-badges{display:flex;gap:7px;flex-wrap:wrap}
 .gc-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:.3px}
 .gb-total{background:rgba(0,176,240,.12);border:1px solid rgba(0,176,240,.3);color:var(--turquesa)}
@@ -118,12 +118,12 @@ main{padding:22px 36px 44px;max-width:1440px;margin:0 auto}
 .gc-bar{display:flex;height:10px;border-radius:99px;overflow:hidden;gap:2px;margin-bottom:10px}
 .gc-seg{height:100%;border-radius:99px;min-width:4px;transition:width .5s cubic-bezier(.22,.68,0,1.2)}
 .gc-estados{display:flex;gap:14px;flex-wrap:wrap}
-.gc-est{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.gc-est{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
 .gc-est-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.gc-est-n{font-family:var(--font-cond);font-weight:700;font-size:13px}
+.gc-est-n{font-family:var(--font-cond);font-weight:700;font-size:16px}
 
 /* ── PILLS ESTADO ── */
-.pill{display:inline-block;font-size:10px;padding:2px 9px;border-radius:99px;font-weight:600;white-space:nowrap;font-family:var(--font-cond);letter-spacing:.3px}
+.pill{display:inline-block;font-size:12px;padding:3px 10px;border-radius:99px;font-weight:700;white-space:nowrap;font-family:var(--font-cond);letter-spacing:.3px}
 .p-plan  {background:rgba(0,176,240,.15);  color:#00B0F0; border:1px solid rgba(0,176,240,.3)}
 .p-det   {background:rgba(255,68,176,.15); color:#FF44B0; border:1px solid rgba(255,68,176,.3)}
 .p-replan{background:rgba(255,167,0,.15);  color:#FFA700; border:1px solid rgba(255,167,0,.3)}
@@ -132,17 +132,18 @@ main{padding:22px 36px 44px;max-width:1440px;margin:0 auto}
 .p-gray  {background:rgba(155,188,216,.1); color:var(--muted);border:1px solid var(--border)}
 
 /* ── ALERT BADGES ── */
-.ab{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700;font-family:var(--font-cond);letter-spacing:.5px}
+.ab{display:inline-flex;align-items:center;gap:4px;padding:3px 11px;border-radius:99px;font-size:12px;font-weight:700;font-family:var(--font-cond);letter-spacing:.5px}
 .ab-ok   {background:rgba(52,211,153,.12); color:#34D399;border:1px solid rgba(52,211,153,.3)}
 .ab-warn {background:rgba(255,167,0,.12);  color:#FFA700;border:1px solid rgba(255,167,0,.3)}
 .ab-crit {background:rgba(255,111,66,.15); color:#FF6F42;border:1px solid rgba(255,111,66,.35)}
+.ab-tom  {background:rgba(255,111,66,.18); color:#FF6F42;border:1px solid rgba(255,111,66,.4);font-weight:800}
 .ab-nd   {background:rgba(155,188,216,.08);color:var(--muted);border:1px solid var(--border)}
 
 /* ── TABLES ── */
 .tbl-card{background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:18px 20px;overflow-x:auto;margin-bottom:20px;backdrop-filter:blur(6px);box-shadow:0 2px 16px rgba(0,0,0,.2)}
 table{width:100%;border-collapse:collapse;font-size:12px}
-th{font-family:var(--font-cond);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:7px 10px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
-td{padding:7px 10px;color:#d0dff0;border-bottom:1px solid rgba(0,176,240,.07);white-space:nowrap;vertical-align:middle}
+th{font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:8px 12px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+td{padding:8px 12px;color:#d0dff0;font-size:13px;border-bottom:1px solid rgba(0,176,240,.07);white-space:nowrap;vertical-align:middle}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:rgba(0,176,240,.05)}
 
@@ -150,8 +151,8 @@ tr:hover td{background:rgba(0,176,240,.05)}
 .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
 .chart-card{background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:20px 22px;backdrop-filter:blur(6px);box-shadow:0 2px 16px rgba(0,0,0,.2)}
 .chart-card.full{grid-column:1/-1}
-.card-title{font-family:var(--font-cond);font-weight:700;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:#fff;margin-bottom:4px;display:flex;align-items:center;gap:8px}
-.card-sub{font-size:10px;color:var(--muted);margin-bottom:12px;padding-left:16px;letter-spacing:.3px}
+.card-title{font-family:var(--font-cond);font-weight:700;font-size:15px;letter-spacing:1.5px;text-transform:uppercase;color:#fff;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.card-sub{font-size:12px;color:var(--muted);margin-bottom:12px;padding-left:16px;letter-spacing:.3px}
 .leg-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;padding-left:16px}
 .leg-i{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)}
 .leg-sq{width:8px;height:8px;border-radius:2px;flex-shrink:0}
@@ -349,14 +350,14 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
     <div class="section-title"><span class="dot-sec"></span>Alertas · Días sin Gestión (FE ULT PLAN vs hoy)</div>
     <div class="tbl-card">
       <table>
-        <thead><tr><th>#</th><th>Gestor</th><th>Login/Servicio</th><th>Cliente</th><th>Estado Servicio</th><th>FE Últ Plan</th><th>Días sin gestión</th><th>Fecha Solicitud</th><th>Días desde solicitud</th></tr></thead>
+        <thead><tr><th>#</th><th>Gestor</th><th>Login/Servicio</th><th>Cliente</th><th>Producto</th><th>Estado Servicio</th><th>FE Últ Plan</th><th>Días sin gestión</th><th>Fecha Solicitud</th><th>Días desde solicitud</th></tr></thead>
         <tbody id="tbl-gest"></tbody>
       </table>
     </div>
     <div class="section-title"><span class="dot-sec"></span>Solicitudes Antiguas · Días desde ingreso (FECHA_SOLICITUD vs hoy)</div>
     <div class="tbl-card">
       <table>
-        <thead><tr><th>#</th><th>Gestor</th><th>Login/Servicio</th><th>Cliente</th><th>Estado Servicio</th><th>Fecha Solicitud</th><th>Días desde solicitud</th><th>FE Últ Plan</th><th>Días sin gestión</th></tr></thead>
+        <thead><tr><th>#</th><th>Gestor</th><th>Login/Servicio</th><th>Cliente</th><th>Producto</th><th>Estado Servicio</th><th>Fecha Solicitud</th><th>Días desde solicitud</th><th>FE Últ Plan</th><th>Días sin gestión</th></tr></thead>
         <tbody id="tbl-sol"></tbody>
       </table>
     </div>
@@ -450,7 +451,7 @@ const KNOWN_SHEETS = [
   {fecha:'18-05-26',gid:1356018131},
   {fecha:'19-05-26',gid:1190443317},
   {fecha:'20-05-26',gid:1609901699},
-  {fecha:'21-05-26',gid:629799442},
+  {fecha:'20-05-26',gid:629799442},
   // ▼ AGREGAR NUEVAS HOJAS AQUÍ ▼
   // { fecha: '21-05-26', gid: PEGAR_GID_AQUI },
 ];
@@ -539,13 +540,14 @@ const esPre =r=>getEst(r)==='PrePlanificada';
 function count(data,key){return data.reduce((a,r)=>{const v=r[key]||'Sin dato';a[v]=(a[v]||0)+1;return a;},{});}
 function topN(obj,n){return Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,n);}
 function pill(v){const c=EST_PILL[v]||'p-gray';return`<span class="pill ${c}">${v||'—'}</span>`;}
-function abDias(d,thresholds=[3,7]){
+function abDias(d){
   if(d===null||d===undefined)return`<span class="ab ab-nd">—</span>`;
-  if(d<0)return`<span class="ab ab-ok">📅 ${Math.abs(d)}d fut.</span>`; // fecha futura
-  if(d===0)return`<span class="ab ab-ok">✓ Hoy</span>`;
-  if(d<=thresholds[0])return`<span class="ab ab-ok">✓ ${d}d</span>`;
-  if(d<=thresholds[1])return`<span class="ab ab-warn">⚡ ${d}d</span>`;
-  return`<span class="ab ab-crit">🔴 ${d}d</span>`;
+  if(d<0) return`<span class="ab ab-ok">📅 ${Math.abs(d)}d fut.</span>`;
+  if(d===0)return`<span class="ab ab-ok" title="Gestionado hoy">✓ Hoy</span>`;
+  if(d<=3) return`<span class="ab ab-ok"  title="${d} días sin gestión">✓ ${d}d</span>`;
+  if(d<=6) return`<span class="ab ab-warn" title="${d} días sin gestión">⚡ ${d}d</span>`;
+  if(d<=10)return`<span class="ab ab-tom"  title="${d} días sin gestión">⚠ ${d}d</span>`;
+  return      `<span class="ab ab-crit" title="${d} días sin gestión">🔴 ${d}d</span>`;
 }
 function abSol(d){
   if(d===null||d===undefined)return`<span class="ab ab-nd">—</span>`;
@@ -901,29 +903,31 @@ function renderAlertas(){
     .filter(r=>r._dG!==null).sort((a,b)=>b._dG-a._dG).slice(0,100);
   document.getElementById('tbl-gest').innerHTML=rows1.length?rows1.map((r,i)=>`<tr>
     <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
-    <td style="font-weight:600;color:var(--turquesa);max-width:140px;overflow:hidden;text-overflow:ellipsis">${r[C.GESTOR]||'—'}</td>
-    <td style="font-family:var(--font-cond);font-size:11px">${r[C.LOGIN]||r[C.ID_SERV]||'—'}</td>
-    <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;font-size:11px">${r[C.CLIENTE]||'—'}</td>
+    <td style="font-weight:700;color:var(--turquesa);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:13px">${r[C.GESTOR]||'—'}</td>
+    <td style="font-family:var(--font-cond);font-size:13px;color:var(--azul-c)">${r[C.LOGIN]||r[C.ID_SERV]||'—'}</td>
+    <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;font-size:13px">${r[C.CLIENTE]||'—'}</td>
+    <td style="font-size:12px;color:var(--muted)">${r[C.PRODUCTO]||'—'}</td>
     <td>${pill(getEst(r))}</td>
-    <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${fmtDate(r[C.FE_PLAN])}</td>
+    <td style="font-family:var(--font-cond);font-size:12px;color:var(--muted)">${fmtDate(r[C.FE_PLAN])}</td>
     <td>${abDias(r._dG)}</td>
-    <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${fmtDate(r[C.FECHA_SOL])}</td>
+    <td style="font-family:var(--font-cond);font-size:12px;color:var(--muted)">${fmtDate(r[C.FECHA_SOL])}</td>
     <td>${abSol(r._dS)}</td>
-  </tr>`).join(''):`<tr><td colspan="9" class="empty">Sin registros con fecha de plan</td></tr>`;
+  </tr>`).join(''):`<tr><td colspan="10" class="empty">Sin registros con fecha de plan</td></tr>`;
 
   const rows2=filtered.map(r=>({...r,_dS:diasDesde(r[C.FECHA_SOL]),_dG:diasDesde(r[C.FE_PLAN])}))
     .filter(r=>r._dS!==null).sort((a,b)=>b._dS-a._dS).slice(0,100);
   document.getElementById('tbl-sol').innerHTML=rows2.length?rows2.map((r,i)=>`<tr>
     <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
-    <td style="font-weight:600;color:var(--turquesa);max-width:140px;overflow:hidden;text-overflow:ellipsis">${r[C.GESTOR]||'—'}</td>
-    <td style="font-family:var(--font-cond);font-size:11px">${r[C.LOGIN]||r[C.ID_SERV]||'—'}</td>
-    <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;font-size:11px">${r[C.CLIENTE]||'—'}</td>
+    <td style="font-weight:700;color:var(--turquesa);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:13px">${r[C.GESTOR]||'—'}</td>
+    <td style="font-family:var(--font-cond);font-size:13px;color:var(--azul-c)">${r[C.LOGIN]||r[C.ID_SERV]||'—'}</td>
+    <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;font-size:13px">${r[C.CLIENTE]||'—'}</td>
+    <td style="font-size:12px;color:var(--muted)">${r[C.PRODUCTO]||'—'}</td>
     <td>${pill(getEst(r))}</td>
-    <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${fmtDate(r[C.FECHA_SOL])}</td>
+    <td style="font-family:var(--font-cond);font-size:12px;color:var(--muted)">${fmtDate(r[C.FECHA_SOL])}</td>
     <td>${abSol(r._dS)}</td>
-    <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${fmtDate(r[C.FE_PLAN])}</td>
+    <td style="font-family:var(--font-cond);font-size:12px;color:var(--muted)">${fmtDate(r[C.FE_PLAN])}</td>
     <td>${abDias(r._dG)}</td>
-  </tr>`).join(''):`<tr><td colspan="9" class="empty">Sin registros con fecha de solicitud</td></tr>`;
+  </tr>`).join(''):`<tr><td colspan="10" class="empty">Sin registros con fecha de solicitud</td></tr>`;
 }
 
 // ── CHARTS ─────────────────────────────────────────────────────────────
@@ -975,7 +979,7 @@ function renderResumen(){
       <td style="font-family:var(--font-cond)">${d.cli.size}</td>
       <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${fmtDate(ult)}</td>
     </tr>`;
-  }).join(''):`<tr><td colspan="9" class="empty">Sin datos</td></tr>`;
+  }).join(''):`<tr><td colspan="10" class="empty">Sin datos</td></tr>`;
 }
 
 
