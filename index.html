@@ -394,7 +394,7 @@ const SHEET_ID = '1e0LPzPCBzAuO7HXpYAYSo7ogXQg0rau5-CFrGUfyzaE';
 // 2. Pegar el código del proxy (ver comentario en loadAll)
 // 3. Publicar como Web App (Ejecutar como: yo, Acceso: Cualquiera)
 // 4. Pegar la URL aquí:
-const APPS_SCRIPT_URL = ''; // Ej: 'https://script.google.com/macros/s/XXXX/exec'
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw54mbXXAD4WgY9Mf0eN2MezkBbs9NI1Aifd9SjwbDC5yjoHkfVERm1zpTChTrgQ2Kb/exec'; // Ej: 'https://script.google.com/macros/s/XXXX/exec'
 const KNOWN_SHEETS = [
   {fecha:'01-05-26',gid:14159634},{fecha:'02-05-26',gid:982750352},
   {fecha:'04-05-26',gid:1948937092},{fecha:'05-05-26',gid:1425746571},
@@ -419,9 +419,9 @@ const EST_PILL={Planificada:'p-plan',Detenido:'p-det',Replanificada:'p-replan',A
 let allData=[],filtered=[],charts={},sheetStats={};
 
 // ── UTILS ──────────────────────────────────────────────────────────────
-// URL gviz con JSONP callback para evitar restricciones CORS de Google Workspace
-const csvUrl  = gid => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
-const jsonpUrl = gid => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${gid}&callback=_gviz_cb_${gid}`;
+// ── URLS ───────────────────────────────────────────────────────────────
+// Apps Script proxy (principal) - ver apps_script_proxy.gs para configurar
+const appsScriptUrl = gid => `${APPS_SCRIPT_URL}?gid=${gid}`;
 function parseLine(l){const v=[];let c='',q=false;for(const ch of l){if(ch==='"')q=!q;else if(ch===','&&!q){v.push(c);c='';}else c+=ch;}v.push(c);return v.map(s=>s.replace(/^"|"$/g,'').trim());}
 function parseCSV(txt){const lines=txt.split('\n').filter(l=>l.trim());if(lines.length<2)return[];const h=parseLine(lines[0]);return lines.slice(1).map(l=>{const v=parseLine(l);const o={};h.forEach((k,i)=>{o[k.trim()]=(v[i]||'').trim();});return o;}).filter(r=>Object.values(r).some(v=>v));}
 function parseDate(s){if(!s||!s.trim())return null;const t=s.trim();let m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m)return new Date(+m[3],+m[2]-1,+m[1]);m=t.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);if(m)return new Date(+m[3],+m[2]-1,+m[1]);m=t.match(/^(\d{1,2})-(\d{1,2})-(\d{2})$/);if(m)return new Date(2000+ +m[3],+m[2]-1,+m[1]);return null;}
@@ -911,6 +911,59 @@ function renderAll(){
 }
 
 // ── CARGA CSV ───────────────────────────────────────────────────────────
+// ── CARGA DE DATOS ─────────────────────────────────────────────────────
+function mostrarPanelConfig(){
+  // Si no hay Apps Script configurado, mostrar instrucciones en el dashboard
+  const grid = document.getElementById('gestores-grid');
+  if(grid) grid.innerHTML = `
+    <div style="background:rgba(255,167,0,.08);border:1.5px solid rgba(255,167,0,.3);border-radius:12px;padding:24px 28px;color:#e8f0ff">
+      <div style="font-family:var(--font-cond);font-size:16px;font-weight:700;color:#FFA700;letter-spacing:1px;margin-bottom:12px">
+        ⚙ Configuración requerida · Google Workspace
+      </div>
+      <p style="font-size:13px;color:#9BBCD8;margin-bottom:16px;line-height:1.6">
+        Tu Google Sheets es de una cuenta corporativa que bloquea el acceso externo directo.<br>
+        Necesitas publicar un <strong style="color:#fff">Google Apps Script</strong> como proxy. Sigue estos pasos:
+      </p>
+      <ol style="font-size:12px;color:#9BBCD8;line-height:2;padding-left:20px">
+        <li>Ve a <a href="https://script.google.com" target="_blank" style="color:#00B0F0">script.google.com</a> con tu cuenta corporativa</li>
+        <li>Crea un nuevo proyecto y pega el código del archivo <code style="color:#FFA700">apps_script_proxy.gs</code></li>
+        <li>Clic en <strong style="color:#fff">Implementar → Nueva implementación</strong></li>
+        <li>Tipo: <strong style="color:#fff">Aplicación web</strong> | Ejecutar como: <strong style="color:#fff">Yo</strong> | Acceso: <strong style="color:#fff">Cualquier persona</strong></li>
+        <li>Copia la URL generada (empieza con <code style="color:#00B0F0">https://script.google.com/macros/s/...</code>)</li>
+        <li>En el <code style="color:#FFA700">index.html</code>, busca <code style="color:#fff">const APPS_SCRIPT_URL = ''</code> y pega la URL</li>
+        <li>Sube el index.html actualizado a GitHub</li>
+      </ol>
+    </div>`;
+  setStatus('⚙ Configura el Apps Script proxy para cargar datos del Sheets corporativo','error','Ver instrucciones arriba');
+}
+
+async function fetchSheet(s){
+  if(!APPS_SCRIPT_URL){
+    throw new Error('Sin configurar');
+  }
+  const url = appsScriptUrl(s.gid);
+  const r = await fetch(url, {cache:'no-cache', redirect:'follow'});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  const txt = await r.text();
+  if(!txt || txt.trim().length < 10 || txt.includes('Error:')) throw new Error('Sin datos: '+txt.slice(0,50));
+  return parseCSV(txt).map(row=>({...row, _fecha:s.fecha, _gid:s.gid}));
+}
+
+// ── RENDER ALL ──────────────────────────────────────────────────────────
+function renderAll(){
+  renderKPIs();renderGestores();renderAlertas();
+  renderTopGestores();
+  // Limpiar detalle al recargar datos
+  document.getElementById('detalle-gestor-wrap').style.display='none';
+  _gestorSeleccionado=null;
+  hBar('ch-gestores',topN(count(filtered.filter(tieneCarga),C.GESTOR),10),'#00B0F0');
+  doughnut('ch-estado',topN(count(filtered,C.EST),8),'leg-estado');
+  hBar('ch-motivo',topN(count(filtered,C.MOTIVO),10),'#FF6F42');
+  doughnut('ch-empresa',topN(count(filtered,C.EMPRESA),8),'leg-empresa');
+  renderTend();renderResumen();
+}
+
+// ── CARGA CSV ───────────────────────────────────────────────────────────
 // Cargar datos via JSONP (evita restricciones CORS de Google Workspace)
 function fetchSheetJsonp(s){
   return new Promise((resolve, reject) => {
@@ -967,7 +1020,12 @@ async function fetchSheet(s){
 }
 async function loadAll(){
   allData=[];sheetStats={};
-  setStatus('Cargando hojas...','loading');
+  // Verificar configuración
+  if(!APPS_SCRIPT_URL){
+    mostrarPanelConfig();
+    return;
+  }
+  setStatus('Cargando hojas desde Apps Script...','loading');
   document.getElementById('prog-wrap').style.display='block';setProgress(0,KNOWN_SHEETS.length);
   let ok=0,err=0;
   const res=await Promise.allSettled(KNOWN_SHEETS.map(s=>fetchSheet(s)));
