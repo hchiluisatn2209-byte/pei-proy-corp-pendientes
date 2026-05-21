@@ -188,6 +188,9 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
 .gs-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 14px;border-radius:99px;border:1.5px solid rgba(52,211,153,.45);background:rgba(52,211,153,.08);color:#34D399;font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:.8px;backdrop-filter:blur(6px)}
 .gs-badge svg{width:13px;height:13px;flex-shrink:0}
 .gs-badge .gs-hora{color:rgba(52,211,153,.75);font-weight:400}
+
+.sf-opt.dim{opacity:.45}
+.sf-opt.dim:hover{opacity:.85}
 </style>
 </head>
 <body>
@@ -421,7 +424,7 @@ const SHEET_ID = '1e0LPzPCBzAuO7HXpYAYSo7ogXQg0rau5-CFrGUfyzaE';
 // 2. Pegar el código del proxy (ver comentario en loadAll)
 // 3. Publicar como Web App (Ejecutar como: yo, Acceso: Cualquiera)
 // 4. Pegar la URL aquí:
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzmLDshSjvWxoTO3eSD7Wr4rgBvXgmm0Rj2Bkzic8sOZBsKiedxYdoDSIi_humRGQl6/exec'; // Ej: 'https://script.google.com/macros/s/XXXX/exec'
+const APPS_SCRIPT_URL = ''; // Ej: 'https://script.google.com/macros/s/XXXX/exec'
 // ── CÓMO AGREGAR UNA NUEVA HOJA ────────────────────────────────────────
 // 1. Abre el Google Sheets y haz clic en la pestaña de la nueva hoja
 // 2. Mira la URL del navegador: ...spreadsheets/d/ID/edit#gid=XXXXXXXXX
@@ -447,7 +450,6 @@ const KNOWN_SHEETS = [
   {fecha:'18-05-26',gid:1356018131},
   {fecha:'19-05-26',gid:1190443317},
   {fecha:'20-05-26',gid:1609901699},
-  {fecha:'21-05-26',gid:629799442},
   // ▼ AGREGAR NUEVAS HOJAS AQUÍ ▼
   // { fecha: '21-05-26', gid: PEGAR_GID_AQUI },
 ];
@@ -619,23 +621,50 @@ function sfSearch(id){
 function sfRenderList(id, q){
   const inst = SF[id]; if(!inst) return;
   const list = document.getElementById(id+'-list'); if(!list) return;
-  const filtered_opts = q ? inst.all.filter(v => v.toLowerCase().includes(q)) : inst.all;
-  list.innerHTML =
-    `<div class="sf-opt sf-opt-all" onclick="sfToggleAll('${id}')">
-      <input type="checkbox" ${inst.selected.size===0?'':'checked'} readonly> Todos (${inst.all.length})
-    </div>` +
-    filtered_opts.map(v =>
-      `<div class="sf-opt ${inst.selected.has(v)?'selected':''}" onclick="sfToggleVal('${id}','${v.replace(/'/g,"\'")}')">
-        <input type="checkbox" ${inst.selected.has(v)?'checked':''} readonly>
-        ${v.length>40?v.slice(0,38)+'…':v}
-      </div>`
-    ).join('');
+  const opts  = q ? inst.all.filter(v => v.toLowerCase().includes(q)) : inst.all;
+  const allCount = inst.all.length;
+  const selCount = inst.selected.size;
+  const allChecked = selCount === 0 || selCount === allCount;
+  const indeterminate = selCount > 0 && selCount < allCount;
+
+  let html = `<div class="sf-opt sf-opt-all" onclick="sfToggleAll('${id}')">
+    <input type="checkbox" id="${id}-chk-all" ${allChecked?'checked':''} readonly>
+    Todos (${allCount})${indeterminate?' <span style="color:var(--amarillo);font-size:9px">— '+selCount+' activos</span>':''}
+  </div>`;
+
+  opts.forEach((v,i) => {
+    const realIdx  = inst.all.indexOf(v);
+    const isChecked = selCount === 0 || inst.selected.has(v);
+    const dimCls   = selCount > 0 && !inst.selected.has(v) ? 'dim' : '';
+    const selCls   = inst.selected.has(v) ? 'selected' : '';
+    const display  = v.length > 40 ? v.slice(0,38)+'…' : v;
+    html += `<div class="sf-opt ${selCls} ${dimCls}" onclick="sfToggleByIdx('${id}',${realIdx})">
+      <input type="checkbox" ${isChecked?'checked':''} readonly>
+      ${display}
+    </div>`;
+  });
+
+  list.innerHTML = html;
+  setTimeout(()=>{
+    const chkAll = document.getElementById(id+'-chk-all');
+    if(chkAll) chkAll.indeterminate = indeterminate;
+  }, 0);
+}
+
+
+function sfToggleByIdx(id, idx){
+  const inst = SF[id]; if(!inst) return;
+  const val = inst.all[idx];
+  if(val === undefined) return;
+  sfToggleVal(id, val);
 }
 
 function sfToggleVal(id, val){
   const inst = SF[id]; if(!inst) return;
   if(inst.selected.has(val)) inst.selected.delete(val);
   else inst.selected.add(val);
+  // Si queda vacío, limpiar todo (= sin filtro)
+  if(inst.selected.size === 0 || inst.selected.size === inst.all.length) inst.selected.clear();
   sfRenderList(id, document.getElementById(id+'-search')?.value || '');
   sfRenderChips(id);
   applyFilters();
@@ -643,8 +672,15 @@ function sfToggleVal(id, val){
 
 function sfToggleAll(id){
   const inst = SF[id]; if(!inst) return;
-  inst.selected.clear();
-  sfRenderList(id, '');
+  if(inst.selected.size === 0){
+    // Sin selección = todos activos → seleccionar TODOS (para poder deseleccionar uno)
+    inst.all.forEach(v => inst.selected.add(v));
+  } else {
+    // Hay selección → limpiar (volver a "todos")
+    inst.selected.clear();
+  }
+  const q = document.getElementById(id+'-search')?.value || '';
+  sfRenderList(id, q);
   sfRenderChips(id);
   applyFilters();
 }
@@ -668,7 +704,9 @@ function sfRenderChips(id){
 
 function sfGetVals(id){
   const inst = SF[id];
-  return (inst && inst.selected.size > 0) ? inst.selected : null;
+  if(!inst || inst.selected.size === 0) return null; // sin filtro = todos
+  if(inst.selected.size === inst.all.length) return null; // todos seleccionados = sin filtro
+  return inst.selected;
 }
 
 // Inicializar los 6 filtros
@@ -1032,16 +1070,35 @@ function renderTopGestores(){
         },
         tooltip:{
           callbacks:{
-            title: ctx => fullLabels[ctx[0].dataIndex],
-            label: ctx => {
-              const d=sorted[ctx.dataIndex];
-              return `${ctx.dataset.label}: ${ctx.parsed.x}`;
+            title: ctx => {
+              const d = sorted[ctx[0].dataIndex];
+              return `${fullLabels[ctx[0].dataIndex]}  (Total: ${d.tot})`;
             },
-            afterTitle: ctx => {
-              const d=sorted[ctx[0].dataIndex];
-              return `Total: ${d.tot}`;
+            label: ctx => {
+              return `  ${ctx.dataset.label}: ${ctx.parsed.x}`;
+            },
+            afterBody: ctx => {
+              const d = sorted[ctx[0].dataIndex];
+              const gestorRows = (d.rows||[]).filter(tieneCarga);
+              // Top 3 logins con su estado y FE ULT PLAN
+              const lines = ['', '── Top logins ──'];
+              gestorRows.slice(0,5).forEach(r => {
+                const login = r[C.LOGIN]||'—';
+                const fe    = fmtDate(r[C.FE_PLAN])||'—';
+                const est   = getEst(r)||'—';
+                lines.push(`  ${login}  |  ${fe}  |  ${est}`);
+              });
+              if(gestorRows.length > 5) lines.push(`  ... y ${gestorRows.length-5} más`);
+              return lines;
             }
-          }
+          },
+          backgroundColor:'rgba(10,30,70,.97)',
+          borderColor:'rgba(0,176,240,.4)',
+          borderWidth:1,
+          titleFont:{family:"'Barlow Condensed',sans-serif",size:13,weight:'bold'},
+          bodyFont:{family:"'Barlow Condensed',sans-serif",size:11},
+          padding:12,
+          boxPadding:4
         }
       },
       scales:{
