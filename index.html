@@ -319,9 +319,9 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
   <!-- TAB CARGA -->
   <div id="tab-carga">
     <div class="section-title"><span class="dot-sec"></span>Carga por Gestor · Desglose de Estados</div>
-    <div id="nota-corte" style="display:none;margin-bottom:10px;padding:10px 16px;background:rgba(255,167,0,.08);border:1px solid rgba(255,167,0,.25);border-radius:8px;font-size:13px;color:var(--amarillo);line-height:1.6">
-      ⚠ <strong>Filtro de corte activo</strong> — estás viendo solo la hoja del corte seleccionado.<br>
-      <span style="color:var(--muted);font-size:12px">Para ver la carga completa de un gestor en todos los cortes, quita el filtro de fecha (CORTE = Todas). El dashboard mostrará el último registro de cada login entre todas las hojas.</span>
+    <div id="nota-corte" style="display:none;margin-bottom:10px;padding:10px 16px;background:rgba(0,176,240,.07);border:1px solid rgba(0,176,240,.2);border-radius:8px;font-size:13px;color:var(--azul-c);line-height:1.6">
+      📅 <strong>Corte activo</strong> — mostrando todos los registros de la hoja seleccionada.
+      <span style="color:var(--muted);font-size:12px"> Sin corte = deduplicación entre hojas (un login = su registro más reciente).</span>
     </div>
     <div class="gestores-grid" id="gestores-grid"><div class="empty">Cargando...</div></div>
 
@@ -773,9 +773,12 @@ function applyFilters(){
     (!lg || lg.has(r[C.LOGIN]))&&
     (!f  || f.has(r._fecha))
   );
-  // Con corte específico y sin gestor: mostrar datos de esa hoja (dedup desactivado)
-  // Con gestor o sin corte: deduplicar normalmente
+
+  // Si hay filtro de CORTE → mostrar datos exactos de esa hoja SIN deduplicar
+  // (Romina en 21-05-26 = 12 registros en esa hoja → mostrar 12)
+  // Si NO hay corte → deduplicar entre hojas para evitar doble conteo
   _hayFiltroCorteSingle = (f !== null);
+
   const notaCorte = document.getElementById('nota-corte');
   if(notaCorte) notaCorte.style.display = (f !== null) ? '' : 'none';
   renderAll();
