@@ -140,12 +140,23 @@ main{padding:22px 36px 44px;max-width:1440px;margin:0 auto}
 .ab-nd   {background:rgba(155,188,216,.08);color:var(--muted);border:1px solid var(--border)}
 
 /* ── TABLES ── */
-.tbl-card{background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:18px 20px;overflow-x:auto;margin-bottom:20px;backdrop-filter:blur(6px);box-shadow:0 2px 16px rgba(0,0,0,.2)}
-table{width:100%;border-collapse:collapse;font-size:12px}
-th{font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:8px 12px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
-td{padding:8px 12px;color:#d0dff0;font-size:13px;border-bottom:1px solid rgba(0,176,240,.07);white-space:nowrap;vertical-align:middle}
+.tbl-card{background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:20px;backdrop-filter:blur(6px);box-shadow:0 2px 16px rgba(0,0,0,.2)}
+.tbl-scroll{overflow-x:auto;overflow-y:auto;max-height:520px;}
+.tbl-scroll::-webkit-scrollbar{width:6px;height:6px}
+.tbl-scroll::-webkit-scrollbar-track{background:rgba(0,0,0,.15);border-radius:99px}
+.tbl-scroll::-webkit-scrollbar-thumb{background:rgba(0,176,240,.35);border-radius:99px}
+.tbl-scroll::-webkit-scrollbar-thumb:hover{background:rgba(0,176,240,.6)}
+.tbl-scroll::-webkit-scrollbar-corner{background:transparent}
+table{width:100%;border-collapse:collapse;font-size:14px}
+thead th{font-family:var(--font-cond);font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:9px 14px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;background:var(--card-bg);position:sticky;top:0;z-index:2}
+td{padding:9px 14px;color:#d0dff0;font-size:14px;border-bottom:1px solid rgba(0,176,240,.07);white-space:nowrap;vertical-align:middle}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:rgba(0,176,240,.05)}
+tr:hover td{background:rgba(0,176,240,.06)}
+.td-login{font-family:'Lato',sans-serif;font-size:14px;font-weight:700;color:var(--azul-c);max-width:220px;overflow:hidden;text-overflow:ellipsis}
+.td-client{font-size:14px;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.td-obs{white-space:normal;max-width:200px;font-size:13px;color:var(--muted);line-height:1.5}
+.td-muted{font-size:13px;color:var(--muted)}
+.td-num{font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--muted)}
 
 /* ── CHARTS ── */
 .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
@@ -329,7 +340,7 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
           <span id="detalle-count" style="font-family:var(--font-cond);font-size:11px;color:var(--muted);letter-spacing:1px"></span>
           <div style="display:flex;gap:6px;flex-wrap:wrap" id="detalle-estado-filtros"></div>
         </div>
-        <div style="overflow-x:auto">
+        <div class="tbl-scroll">
           <table id="tbl-detalle">
             <thead><tr>
               <th>#</th><th>Fec. Solicitud</th><th>Login</th><th>Cliente</th>
@@ -349,17 +360,17 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
   <div id="tab-alertas" style="display:none">
     <div class="section-title"><span class="dot-sec"></span>Alertas · Días sin Gestión (FE ULT PLAN vs hoy)</div>
     <div class="tbl-card">
-      <table>
+      <div class="tbl-scroll"><table>
         <thead><tr><th>#</th><th>Gestor</th><th>Login/Servicio</th><th>Cliente</th><th>Producto</th><th>Estado Servicio</th><th>FE Últ Plan</th><th>Días sin gestión</th><th>Fecha Solicitud</th><th>Días desde solicitud</th></tr></thead>
         <tbody id="tbl-gest"></tbody>
-      </table>
+      </table></div>
     </div>
     <div class="section-title"><span class="dot-sec"></span>Solicitudes Antiguas · Días desde ingreso (FECHA_SOLICITUD vs hoy)</div>
     <div class="tbl-card">
-      <table>
+      <div class="tbl-scroll"><table>
         <thead><tr><th>#</th><th>Gestor</th><th>Login/Servicio</th><th>Cliente</th><th>Producto</th><th>Estado Servicio</th><th>Fecha Solicitud</th><th>Días desde solicitud</th><th>FE Últ Plan</th><th>Días sin gestión</th></tr></thead>
         <tbody id="tbl-sol"></tbody>
-      </table>
+      </table></div>
     </div>
   </div>
 
@@ -451,7 +462,7 @@ const KNOWN_SHEETS = [
   {fecha:'18-05-26',gid:1356018131},
   {fecha:'19-05-26',gid:1190443317},
   {fecha:'20-05-26',gid:1609901699},
-  {fecha:'20-05-26',gid:629799442},
+  {fecha:'21-05-26',gid:629799442},
   // ▼ AGREGAR NUEVAS HOJAS AQUÍ ▼
   // { fecha: '21-05-26', gid: PEGAR_GID_AQUI },
 ];
@@ -903,14 +914,14 @@ function renderAlertas(){
     .filter(r=>r._dG!==null).sort((a,b)=>b._dG-a._dG).slice(0,100);
   document.getElementById('tbl-gest').innerHTML=rows1.length?rows1.map((r,i)=>`<tr>
     <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
-    <td style="font-weight:700;color:var(--turquesa);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:13px">${r[C.GESTOR]||'—'}</td>
-    <td style="font-family:var(--font-cond);font-size:13px;color:var(--azul-c)">${r[C.LOGIN]||r[C.ID_SERV]||'—'}</td>
-    <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;font-size:13px">${r[C.CLIENTE]||'—'}</td>
-    <td style="font-size:12px;color:var(--muted)">${r[C.PRODUCTO]||'—'}</td>
+    <td style="font-weight:700;color:var(--turquesa);max-width:160px;overflow:hidden;text-overflow:ellipsis;font-size:14px">${r[C.GESTOR]||'—'}</td>
+    <td class="td-login">${r[C.LOGIN]||r[C.ID_SERV]||'—'}</td>
+    <td class="td-client">${r[C.CLIENTE]||'—'}</td>
+    <td class="td-muted">${r[C.PRODUCTO]||'—'}</td>
     <td>${pill(getEst(r))}</td>
-    <td style="font-family:var(--font-cond);font-size:12px;color:var(--muted)">${fmtDate(r[C.FE_PLAN])}</td>
+    <td class="td-num">${fmtDate(r[C.FE_PLAN])}</td>
     <td>${abDias(r._dG)}</td>
-    <td style="font-family:var(--font-cond);font-size:12px;color:var(--muted)">${fmtDate(r[C.FECHA_SOL])}</td>
+    <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
     <td>${abSol(r._dS)}</td>
   </tr>`).join(''):`<tr><td colspan="10" class="empty">Sin registros con fecha de plan</td></tr>`;
 
@@ -918,14 +929,14 @@ function renderAlertas(){
     .filter(r=>r._dS!==null).sort((a,b)=>b._dS-a._dS).slice(0,100);
   document.getElementById('tbl-sol').innerHTML=rows2.length?rows2.map((r,i)=>`<tr>
     <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
-    <td style="font-weight:700;color:var(--turquesa);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:13px">${r[C.GESTOR]||'—'}</td>
-    <td style="font-family:var(--font-cond);font-size:13px;color:var(--azul-c)">${r[C.LOGIN]||r[C.ID_SERV]||'—'}</td>
-    <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;font-size:13px">${r[C.CLIENTE]||'—'}</td>
-    <td style="font-size:12px;color:var(--muted)">${r[C.PRODUCTO]||'—'}</td>
+    <td style="font-weight:700;color:var(--turquesa);max-width:160px;overflow:hidden;text-overflow:ellipsis;font-size:14px">${r[C.GESTOR]||'—'}</td>
+    <td class="td-login">${r[C.LOGIN]||r[C.ID_SERV]||'—'}</td>
+    <td class="td-client">${r[C.CLIENTE]||'—'}</td>
+    <td class="td-muted">${r[C.PRODUCTO]||'—'}</td>
     <td>${pill(getEst(r))}</td>
-    <td style="font-family:var(--font-cond);font-size:12px;color:var(--muted)">${fmtDate(r[C.FECHA_SOL])}</td>
+    <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
     <td>${abSol(r._dS)}</td>
-    <td style="font-family:var(--font-cond);font-size:12px;color:var(--muted)">${fmtDate(r[C.FE_PLAN])}</td>
+    <td class="td-num">${fmtDate(r[C.FE_PLAN])}</td>
     <td>${abDias(r._dG)}</td>
   </tr>`).join(''):`<tr><td colspan="10" class="empty">Sin registros con fecha de solicitud</td></tr>`;
 }
@@ -1173,21 +1184,21 @@ function renderDetalleTabla(){
       const obs2 = (r[C.OBS_REPLAN]||'—').slice(0,80) + (r[C.OBS_REPLAN]&&r[C.OBS_REPLAN].length>80?'…':'');
       return `<tr>
         <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
-        <td style="font-family:var(--font-cond);font-size:10px;color:var(--muted)">${fmtDate(r[C.FECHA_SOL])}</td>
-        <td style="font-family:var(--font-cond);font-weight:700;color:var(--turquesa)">${r[C.LOGIN]||'—'}</td>
-        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;font-size:11px">${r[C.CLIENTE]||'—'}</td>
+        <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
+        <td class="td-login">${r[C.LOGIN]||'—'}</td>
+        <td class="td-client">${r[C.CLIENTE]||'—'}</td>
         <td>${pill(getEst(r))}</td>
-        <td style="font-size:11px;color:var(--muted)">${r[C.PRODUCTO]||'—'}</td>
-        <td style="font-size:11px;color:var(--muted)">${r[C.TIPO_ORDEN]||'—'}</td>
-        <td style="font-size:11px;color:var(--muted)">${r[C.SUCURSAL]||'—'}</td>
-        <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${fmtDate(r[C.FE_PLAN])}</td>
+        <td class="td-muted">${r[C.PRODUCTO]||'—'}</td>
+        <td class="td-muted">${r[C.TIPO_ORDEN]||'—'}</td>
+        <td class="td-muted">${r[C.SUCURSAL]||'—'}</td>
+        <td class="td-num">${fmtDate(r[C.FE_PLAN])}</td>
         <td>${abDias(dG)}</td>
-        <td class="obs" style="white-space:normal;max-width:180px;font-size:10px;color:var(--muted);line-height:1.4" title="${r[C.OBS_PLAN]||''}">${obs1}</td>
-        <td style="font-size:11px;color:var(--amarillo)">${r[C.MOTIVO]||'—'}</td>
-        <td class="obs" style="white-space:normal;max-width:180px;font-size:10px;color:var(--muted);line-height:1.4" title="${r[C.OBS_REPLAN]||''}">${obs2}</td>
-        <td style="font-size:11px;color:var(--muted)">${r[C.CONTRATO]||'—'}</td>
-        <td style="font-size:11px;color:var(--muted)">${r[C.EMPRESA]||'—'}</td>
-        <td style="font-size:11px;color:var(--muted)">${r[C.VENDEDOR]||'—'}</td>
+        <td class="td-obs" title="${r[C.OBS_PLAN]||''}">${obs1}</td>
+        <td style="font-size:14px;color:var(--amarillo)">${r[C.MOTIVO]||'—'}</td>
+        <td class="td-obs" title="${r[C.OBS_REPLAN]||''}">${obs2}</td>
+        <td class="td-muted">${r[C.CONTRATO]||'—'}</td>
+        <td class="td-muted">${r[C.EMPRESA]||'—'}</td>
+        <td class="td-muted">${r[C.VENDEDOR]||'—'}</td>
       </tr>`;
     }).join('') :
     '<tr><td colspan="16" class="empty">Sin órdenes para este filtro</td></tr>';
