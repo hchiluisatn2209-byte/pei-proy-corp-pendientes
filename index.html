@@ -48,14 +48,38 @@ header{background:linear-gradient(90deg,#162d5e,#1B3A70 70%,#245090);border-bott
 .prog-bar{height:100%;background:var(--turquesa);border-radius:99px;transition:width .3s}
 
 /* ── FILTER BAR ── */
-.filter-bar{background:rgba(22,45,94,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:10px 36px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:71px;z-index:190}
+.filter-bar{background:rgba(22,45,94,.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:10px 36px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:sticky;top:71px;z-index:190}
 .filter-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--turquesa);font-weight:600;white-space:nowrap}
-.filter-select{background:rgba(255,255,255,.07);border:1.5px solid rgba(0,176,240,.35);color:#fff;border-radius:20px;padding:5px 14px;font-size:11px;font-weight:600;font-family:var(--font);cursor:pointer;outline:none;transition:border-color .18s;max-width:200px}
-.filter-select:hover,.filter-select:focus{border-color:var(--turquesa)}
-.filter-select option{background:#1a3f7a;color:#fff}
 .filter-sep{width:1px;height:22px;background:var(--border);flex-shrink:0}
 .filter-reset{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;color:var(--muted);border:1px solid var(--border);border-radius:20px;padding:5px 12px;transition:all .18s;background:transparent}
 .filter-reset:hover{color:#fff;border-color:var(--turquesa)}
+
+/* ── SEARCHABLE DROPDOWN ── */
+.sf-wrap{position:relative;display:inline-flex;flex-direction:column}
+.sf-input-row{display:flex;align-items:center;background:rgba(255,255,255,.07);border:1.5px solid rgba(0,176,240,.35);color:#fff;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;font-family:var(--font);cursor:pointer;transition:border-color .18s;min-width:110px;max-width:200px;gap:4px}
+.sf-input-row:focus-within{border-color:var(--turquesa)}
+.sf-input{background:transparent;border:none;color:#fff;outline:none;font-size:11px;font-family:var(--font);width:100%;min-width:60px;cursor:text}
+.sf-input::placeholder{color:var(--muted)}
+.sf-arrow{color:var(--muted);font-size:9px;flex-shrink:0;transition:transform .18s;pointer-events:none}
+.sf-wrap.open .sf-arrow{transform:rotate(180deg)}
+.sf-chips{display:flex;flex-wrap:wrap;gap:3px;max-width:180px}
+.sf-chip{display:inline-flex;align-items:center;gap:3px;background:rgba(0,176,240,.2);border:1px solid rgba(0,176,240,.4);color:var(--turquesa);border-radius:99px;padding:1px 7px;font-size:10px;font-weight:600;white-space:nowrap}
+.sf-chip-x{cursor:pointer;font-size:11px;line-height:1;opacity:.7}
+.sf-chip-x:hover{opacity:1}
+.sf-dropdown{position:absolute;top:calc(100% + 4px);left:0;min-width:220px;max-width:320px;background:#1a3f7a;border:1.5px solid rgba(0,176,240,.35);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:999;overflow:hidden;display:none}
+.sf-wrap.open .sf-dropdown{display:block}
+.sf-search{padding:8px 12px;border-bottom:1px solid var(--border)}
+.sf-search input{width:100%;background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:8px;color:#fff;padding:5px 10px;font-size:11px;font-family:var(--font);outline:none}
+.sf-search input:focus{border-color:var(--turquesa)}
+.sf-list{max-height:220px;overflow-y:auto;padding:4px 0}
+.sf-list::-webkit-scrollbar{width:4px}
+.sf-list::-webkit-scrollbar-track{background:transparent}
+.sf-list::-webkit-scrollbar-thumb{background:rgba(0,176,240,.3);border-radius:99px}
+.sf-opt{padding:7px 14px;font-size:11px;color:#d0dff0;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .12s}
+.sf-opt:hover{background:rgba(0,176,240,.12)}
+.sf-opt.selected{color:var(--turquesa);background:rgba(0,176,240,.1)}
+.sf-opt input[type=checkbox]{accent-color:var(--turquesa);width:13px;height:13px;flex-shrink:0}
+.sf-opt-all{border-bottom:1px solid var(--border);font-weight:600;color:var(--muted)}
 
 /* ── TABS ── */
 .tabs-bar{padding:16px 36px 0;display:flex;gap:0;border-bottom:1px solid var(--border)}
@@ -203,22 +227,22 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
 <!-- FILTERS -->
 <div class="filter-bar">
   <span class="filter-label">Gestor</span>
-  <select class="filter-select" id="fil-gestor" onchange="applyFilters()"><option value="">Todos</option></select>
+  <div class="sf-wrap" id="sf-gestor"></div>
   <div class="filter-sep"></div>
-  <span class="filter-label">Estado Servicio</span>
-  <select class="filter-select" id="fil-estado" onchange="applyFilters()"><option value="">Todos</option></select>
+  <span class="filter-label">Estado</span>
+  <div class="sf-wrap" id="sf-estado"></div>
   <div class="filter-sep"></div>
   <span class="filter-label">Tipo Empresa</span>
-  <select class="filter-select" id="fil-empresa" onchange="applyFilters()"><option value="">Todos</option></select>
+  <div class="sf-wrap" id="sf-empresa"></div>
   <div class="filter-sep"></div>
   <span class="filter-label">Tipo Enlace</span>
-  <select class="filter-select" id="fil-enlace" onchange="applyFilters()"><option value="">Todos</option></select>
+  <div class="sf-wrap" id="sf-enlace"></div>
   <div class="filter-sep"></div>
   <span class="filter-label">Login</span>
-  <select class="filter-select" id="fil-login" onchange="applyFilters()"><option value="">Todos</option></select>
+  <div class="sf-wrap" id="sf-login"></div>
   <div class="filter-sep"></div>
   <span class="filter-label">Corte</span>
-  <select class="filter-select" id="fil-fecha" onchange="applyFilters()"><option value="">Todas</option></select>
+  <div class="sf-wrap" id="sf-fecha"></div>
   <button class="filter-reset" onclick="clearFilters()">✕ Limpiar filtros</button>
 </div>
 
@@ -546,32 +570,141 @@ function switchTab(t){
 }
 
 // ── FILTROS ────────────────────────────────────────────────────────────
-function populateSel(id,vals){
-  const s=document.getElementById(id);const cur=s.value;
-  while(s.options.length>1)s.remove(1);
-  [...new Set(vals)].filter(Boolean).sort().forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;s.appendChild(o);});
-  if(cur)s.value=cur;
+// ── SEARCHABLE MULTI-SELECT FILTERS ────────────────────────────────────
+const SF = {}; // registro de instancias: { id: { selected: Set, all: [] } }
+
+function sfCreate(containerId, placeholder='Todos'){
+  const wrap = document.getElementById(containerId);
+  if(!wrap) return;
+  wrap.innerHTML = `
+    <div class="sf-input-row" onclick="sfToggle('${containerId}')">
+      <div class="sf-chips" id="${containerId}-chips"></div>
+      <input class="sf-input" id="${containerId}-inp" placeholder="${placeholder}" 
+        oninput="sfSearch('${containerId}')" onclick="event.stopPropagation()">
+      <span class="sf-arrow">▼</span>
+    </div>
+    <div class="sf-dropdown">
+      <div class="sf-search"><input placeholder="Buscar..." oninput="sfSearch('${containerId}')" id="${containerId}-search"></div>
+      <div class="sf-list" id="${containerId}-list"></div>
+    </div>`;
+  SF[containerId] = { selected: new Set(), all: [] };
+  // Cerrar al clic fuera
+  document.addEventListener('click', e => {
+    if(!wrap.contains(e.target)) wrap.classList.remove('open');
+  }, true);
 }
+
+function sfToggle(id){
+  const wrap = document.getElementById(id);
+  const isOpen = wrap.classList.contains('open');
+  // Cerrar todos
+  Object.keys(SF).forEach(k => document.getElementById(k)?.classList.remove('open'));
+  if(!isOpen){ wrap.classList.add('open'); document.getElementById(id+'-search')?.focus(); }
+}
+
+function sfPopulate(id, vals){
+  if(!SF[id]) return;
+  const unique = [...new Set(vals)].filter(Boolean).sort();
+  SF[id].all = unique;
+  sfRenderList(id, '');
+  sfRenderChips(id);
+}
+
+function sfSearch(id){
+  const q = (document.getElementById(id+'-search')?.value || document.getElementById(id+'-inp')?.value || '').toLowerCase();
+  sfRenderList(id, q);
+}
+
+function sfRenderList(id, q){
+  const inst = SF[id]; if(!inst) return;
+  const list = document.getElementById(id+'-list'); if(!list) return;
+  const filtered_opts = q ? inst.all.filter(v => v.toLowerCase().includes(q)) : inst.all;
+  list.innerHTML =
+    `<div class="sf-opt sf-opt-all" onclick="sfToggleAll('${id}')">
+      <input type="checkbox" ${inst.selected.size===0?'':'checked'} readonly> Todos (${inst.all.length})
+    </div>` +
+    filtered_opts.map(v =>
+      `<div class="sf-opt ${inst.selected.has(v)?'selected':''}" onclick="sfToggleVal('${id}','${v.replace(/'/g,"\'")}')">
+        <input type="checkbox" ${inst.selected.has(v)?'checked':''} readonly>
+        ${v.length>40?v.slice(0,38)+'…':v}
+      </div>`
+    ).join('');
+}
+
+function sfToggleVal(id, val){
+  const inst = SF[id]; if(!inst) return;
+  if(inst.selected.has(val)) inst.selected.delete(val);
+  else inst.selected.add(val);
+  sfRenderList(id, document.getElementById(id+'-search')?.value || '');
+  sfRenderChips(id);
+  applyFilters();
+}
+
+function sfToggleAll(id){
+  const inst = SF[id]; if(!inst) return;
+  inst.selected.clear();
+  sfRenderList(id, '');
+  sfRenderChips(id);
+  applyFilters();
+}
+
+function sfRenderChips(id){
+  const inst = SF[id]; if(!inst) return;
+  const chips = document.getElementById(id+'-chips'); if(!chips) return;
+  if(inst.selected.size === 0){
+    chips.innerHTML = '';
+    return;
+  }
+  const arr = [...inst.selected];
+  const shown = arr.slice(0,2);
+  const extra = arr.length > 2 ? arr.length - 2 : 0;
+  chips.innerHTML = shown.map(v =>
+    `<span class="sf-chip">${v.length>14?v.slice(0,13)+'…':v}
+      <span class="sf-chip-x" onclick="event.stopPropagation();sfToggleVal('${id}','${v.replace(/'/g,"\'")}')">×</span>
+    </span>`
+  ).join('') + (extra ? `<span class="sf-chip">+${extra}</span>` : '');
+}
+
+function sfGetVals(id){
+  const inst = SF[id];
+  return (inst && inst.selected.size > 0) ? inst.selected : null;
+}
+
+// Inicializar los 6 filtros
+function initFilters(){
+  sfCreate('sf-gestor', 'Todos');
+  sfCreate('sf-estado', 'Todos');
+  sfCreate('sf-empresa','Todos');
+  sfCreate('sf-enlace', 'Todos');
+  sfCreate('sf-login',  'Buscar login...');
+  sfCreate('sf-fecha',  'Todas');
+}
+
+function populateSel(sfId, vals){
+  sfPopulate(sfId, vals);
+}
+
 function applyFilters(){
-  const g=document.getElementById('fil-gestor').value;
-  const e=document.getElementById('fil-estado').value;
-  const t=document.getElementById('fil-empresa').value;
-  const l=document.getElementById('fil-enlace').value;
-  const f=document.getElementById('fil-fecha').value;
-  const lg=document.getElementById('fil-login').value;
-  filtered=allData.filter(r=>
-    (!g  || r[C.GESTOR]===g)&&
-    (!e  || getEst(r)===e)&&
-    (!t  || r[C.EMPRESA]===t)&&
-    (!l  || r[C.ENLACE]===l)&&
-    (!f  || r._fecha===f)&&
-    (!lg || r[C.LOGIN]===lg)
+  const g  = sfGetVals('sf-gestor');
+  const e  = sfGetVals('sf-estado');
+  const t  = sfGetVals('sf-empresa');
+  const l  = sfGetVals('sf-enlace');
+  const lg = sfGetVals('sf-login');
+  const f  = sfGetVals('sf-fecha');
+  filtered = allData.filter(r =>
+    (!g  || g.has(r[C.GESTOR]))&&
+    (!e  || e.has(getEst(r)))&&
+    (!t  || t.has(r[C.EMPRESA]))&&
+    (!l  || l.has(r[C.ENLACE]))&&
+    (!lg || lg.has(r[C.LOGIN]))&&
+    (!f  || f.has(r._fecha))
   );
   renderAll();
 }
+
 function clearFilters(){
-  ['fil-gestor','fil-estado','fil-empresa','fil-enlace','fil-fecha','fil-login'].forEach(id=>document.getElementById(id).value='');
-  filtered=[...allData];renderAll();
+  Object.keys(SF).forEach(id => { if(SF[id]) SF[id].selected.clear(); sfRenderChips(id); sfRenderList(id,''); });
+  filtered=[...allData]; renderAll();
 }
 
 // ── KPIs ───────────────────────────────────────────────────────────────
@@ -812,7 +945,6 @@ let _detalleEstadoFil   = 'all';
 let _gestorMapCache     = {};
 
 function renderTopGestores(){
-  // Construir mapa gestor → totales
   const map = {};
   filtered.forEach(r => {
     if(!tieneCarga(r)) return;
@@ -827,60 +959,99 @@ function renderTopGestores(){
   _gestorMapCache = map;
 
   const sorted = Object.entries(map)
-    .map(([g,d]) => ({g, tot: d.plan+d.det+d.rep+d.asig, ...d}))
+    .map(([g,d]) => ({g, tot:d.plan+d.det+d.rep+d.asig, ...d}))
     .sort((a,b) => b.tot - a.tot)
     .slice(0, 20);
 
-  const labels = sorted.map(d => d.g.length > 28 ? d.g.slice(0,26)+'…' : d.g);
-  const fullLabels = sorted.map(d => d.g);
+  const labels    = sorted.map(d => d.g.length>30 ? d.g.slice(0,28)+'…' : d.g);
+  const fullLabels= sorted.map(d => d.g);
+  const barH      = Math.max(420, sorted.length * 36);
+  const canvas    = document.getElementById('ch-top-gestores');
+  if(!canvas) return;
+  canvas.parentElement.style.height = barH + 'px';
 
   if(charts['ch-top-gestores']) charts['ch-top-gestores'].destroy();
-  const canvas = document.getElementById('ch-top-gestores');
-  if(!canvas) return;
+
+  // Plugin para etiquetas de valor DENTRO y al final de la barra
+  const labelPlugin = {
+    id:'barLabels',
+    afterDatasetsDraw(chart){
+      const ctx = chart.ctx;
+      ctx.save();
+      chart.data.datasets.forEach((ds, di) => {
+        const meta = chart.getDatasetMeta(di);
+        const isLast = di === chart.data.datasets.length - 1;
+        meta.data.forEach((bar, bi) => {
+          const val = ds.data[bi];
+          if(!val) return;
+          const {x, y, width, height, base} = bar.getProps(['x','y','width','height','base'],true);
+          const segW = Math.abs(x - base);
+          // Valor dentro del segmento si hay espacio
+          if(segW > 22){
+            ctx.fillStyle = 'rgba(255,255,255,0.9)';
+            ctx.font = `600 10px 'Barlow Condensed', sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(val, base + segW/2, y + height/2);
+          }
+          // Total al final del último segmento
+          if(isLast){
+            const tot = sorted[bi].tot;
+            ctx.fillStyle = '#e8f0ff';
+            ctx.font = `700 11px 'Barlow Condensed', sans-serif`;
+            ctx.textAlign = 'left';
+            ctx.fillText(tot, x + 5, y + height/2);
+          }
+        });
+      });
+      ctx.restore();
+    }
+  };
 
   charts['ch-top-gestores'] = new Chart(canvas, {
     type: 'bar',
+    plugins: [labelPlugin],
     data: {
       labels,
       datasets: [
-        {label:'Planificada',   data: sorted.map(d=>d.plan), backgroundColor:'rgba(0,176,240,.8)',   borderRadius:3, stack:'s'},
-        {label:'Detenido',      data: sorted.map(d=>d.det),  backgroundColor:'rgba(255,68,176,.8)',  borderRadius:3, stack:'s'},
-        {label:'Replanificada', data: sorted.map(d=>d.rep),  backgroundColor:'rgba(255,167,0,.8)',   borderRadius:3, stack:'s'},
-        {label:'AsignadoTarea', data: sorted.map(d=>d.asig), backgroundColor:'rgba(110,190,235,.8)', borderRadius:3, stack:'s'},
+        {label:'Planificada',   data:sorted.map(d=>d.plan), backgroundColor:'rgba(0,176,240,.85)',   stack:'s', borderSkipped:false},
+        {label:'Detenido',      data:sorted.map(d=>d.det),  backgroundColor:'rgba(255,68,176,.85)',  stack:'s', borderSkipped:false},
+        {label:'Replanificada', data:sorted.map(d=>d.rep),  backgroundColor:'rgba(255,167,0,.85)',   stack:'s', borderSkipped:false},
+        {label:'AsignadoTarea', data:sorted.map(d=>d.asig), backgroundColor:'rgba(110,190,235,.85)', stack:'s', borderSkipped:false},
       ]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
-      indexAxis: 'y',
-      plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          labels: { color:'#9BBCD8', font:{size:11,family:"'Barlow Condensed',sans-serif"}, boxWidth:12, padding:16 }
+      responsive:true, maintainAspectRatio:false,
+      indexAxis:'y',
+      layout:{padding:{right:50}},
+      plugins:{
+        legend:{
+          display:true, position:'top',
+          labels:{color:'#9BBCD8',font:{size:11,family:"'Barlow Condensed',sans-serif"},boxWidth:12,padding:16}
         },
-        tooltip: {
-          callbacks: {
+        tooltip:{
+          callbacks:{
             title: ctx => fullLabels[ctx[0].dataIndex],
-            afterBody: items => {
-              const idx = items[0].dataIndex;
-              const d = sorted[idx];
-              return [`Total: ${d.tot}`, `Plan: ${d.plan}  Det: ${d.det}  Replan: ${d.rep}  Asig: ${d.asig}`];
+            label: ctx => {
+              const d=sorted[ctx.dataIndex];
+              return `${ctx.dataset.label}: ${ctx.parsed.x}`;
+            },
+            afterTitle: ctx => {
+              const d=sorted[ctx[0].dataIndex];
+              return `Total: ${d.tot}`;
             }
           }
         }
       },
-      scales: {
-        x: { stacked:true, grid:{color:'rgba(0,176,240,.08)'}, ticks:{color:'#9BBCD8',font:{size:10,family:"'Barlow Condensed',sans-serif"}} },
-        y: { stacked:true, grid:{color:'transparent'},
-          ticks:{color:'#9BBCD8',font:{size:10,family:"'Barlow Condensed',sans-serif"},
-          callback: (v,i) => labels[i]} }
+      scales:{
+        x:{stacked:true,grid:{color:'rgba(0,176,240,.08)'},ticks:{color:'#9BBCD8',font:{size:10,family:"'Barlow Condensed',sans-serif"}}},
+        y:{stacked:true,grid:{color:'transparent'},ticks:{color:'#9BBCD8',font:{size:10,family:"'Barlow Condensed',sans-serif"},callback:(v,i)=>labels[i]}}
       },
-      onClick(evt, elems){
-        if(!elems.length) return;
-        const idx = elems[0].index;
-        cargarDetalleGestor(fullLabels[idx]);
+      onClick(evt,elems){
+        if(!elems.length)return;
+        cargarDetalleGestor(fullLabels[elems[0].index]);
       },
-      onHover(evt, elems){ canvas.style.cursor = elems.length ? 'pointer' : 'default'; }
+      onHover(evt,elems){canvas.style.cursor=elems.length?'pointer':'default';}
     }
   });
 }
@@ -1084,12 +1255,12 @@ async function loadAll(){
     setProgress(ok+err,KNOWN_SHEETS.length);
     document.getElementById('st-detail').textContent=`${ok}/${KNOWN_SHEETS.length} hojas`;
   });
-  populateSel('fil-gestor', allData.map(r=>r[C.GESTOR]));
-  populateSel('fil-estado',  allData.map(r=>getEst(r)));
-  populateSel('fil-empresa', allData.map(r=>r[C.EMPRESA]));
-  populateSel('fil-enlace',  allData.map(r=>r[C.ENLACE]));
-  populateSel('fil-fecha',   allData.map(r=>r._fecha));
-  populateSel('fil-login',   allData.map(r=>r[C.LOGIN]));
+  populateSel('sf-gestor', allData.map(r=>r[C.GESTOR]));
+  populateSel('sf-estado',  allData.map(r=>getEst(r)));
+  populateSel('sf-empresa', allData.map(r=>r[C.EMPRESA]));
+  populateSel('sf-enlace',  allData.map(r=>r[C.ENLACE]));
+  populateSel('sf-fecha',   allData.map(r=>r._fecha));
+  populateSel('sf-login',   allData.map(r=>r[C.LOGIN]));
   filtered=[...allData];renderAll();
   const now=new Date();
   const horaFmt=now.toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'});
@@ -1106,6 +1277,7 @@ async function loadAll(){
   }
   setProgress(0,0);
 }
+initFilters();
 loadAll();
 </script>
 </body>
