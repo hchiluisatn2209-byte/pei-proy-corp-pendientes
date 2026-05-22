@@ -1408,14 +1408,16 @@ async function loadAll(){
     const s=KNOWN_SHEETS[i];
     if(r.status==='fulfilled'){
       const rows=r.value;
-      allData.push(...rows);
+      // Solo filas con LOGIN válido (descartar filas vacías/basura del CSV)
+      const valid=rows.filter(row=>(row[C.LOGIN]||'').trim()!=='');
+      allData.push(...valid);
       sheetStats[s.fecha]={
-        total:rows.length,
-        plan: rows.filter(esPlan).length,
-        det:  rows.filter(esDet).length,
-        rep:  rows.filter(esRep).length,
-        asig: rows.filter(esAsig).length,
-        pre:  rows.filter(esPre).length
+        total:valid.length,
+        plan: valid.filter(esPlan).length,
+        det:  valid.filter(esDet).length,
+        rep:  valid.filter(esRep).length,
+        asig: valid.filter(esAsig).length,
+        pre:  valid.filter(esPre).length
       };
       ok++;
     }else{
