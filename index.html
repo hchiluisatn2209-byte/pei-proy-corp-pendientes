@@ -444,12 +444,12 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
 <script>
 // ── CONFIG ──────────────────────────────────────────────────────────────
 const SHEET_ID = '1e0LPzPCBzAuO7HXpYAYSo7ogXQg0rau5-CFrGUfyzaE';
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbznG_ihaBy4MYhDnZ2dgbnz6BHutbjR5Im8Qa9UexsE1HiKdqIpACh6USBOvc-n6LjE/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz42uhI5KNPGLeSJd1OrFWLS_fHM-Oh-E18UDjjEV9cwdbtKMl0LhkBiksrXATdPAfc/exec';
 
 // ── CÓMO AGREGAR UNA NUEVA HOJA ────────────────────────────────────────
 // 1. Abre el Google Sheets y haz clic en la pestaña de la nueva hoja
 // 2. Mira la URL del navegador: ...spreadsheets/d/ID/edit#gid=XXXXXXXXX
-// 3. Agrega una línea al array con el formato: { fecha: 'DD-MM-YY', gid: NUMERO_GID },
+// 3. Agrega una línea al array con el formato: { fecha: 'DD-MM-YY', gid: NUhttps://script.google.com/macros/s/AKfycbz42uhI5KNPGLeSJd1OrFWLS_fHM-Oh-E18UDjjEV9cwdbtKMl0LhkBiksrXATdPAfc/execMERO_GID },
 // ────────────────────────────────────────────────────────────────────────
 const KNOWN_SHEETS = [
   {fecha:'01-05-26',gid:14159634},
@@ -1361,7 +1361,17 @@ async function fetchSheetPage(gid, fecha, page) {
     if(!r.ok) throw new Error('HTTP '+r.status);
     const txt = await r.text();
     if(!txt || txt.trim().length < 10) return {rows:[], hasMore:false};
-    if(txt.startsWith('Error:') || txt.startsWith('{"error"')) throw new Error(txt.slice(0,120));
+
+    // Intentar parsear como JSON (v4) o caer a CSV (v2)
+    if(txt.trim().startsWith('{')) {
+      const data = JSON.parse(txt);
+      if(data.error) throw new Error(data.error);
+      const rows = (data.rows||[]).map(row => ({...row, _fecha:fecha, _gid:gid}));
+      return {rows, hasMore: !!data.hasMore};
+    }
+
+    // Fallback CSV legacy
+    if(txt.startsWith('Error:')) throw new Error(txt.slice(0,120));
     const metaLine = txt.split('\n').find(l => l.startsWith('__META__'));
     const hasMore = metaLine ? metaLine.split(',')[2] === '1' : false;
     const rows = parseCSV(txt).map(row => ({...row, _fecha:fecha, _gid:gid}));
@@ -1408,8 +1418,11 @@ async function loadAll(){
     const s=KNOWN_SHEETS[i];
     if(r.status==='fulfilled'){
       const rows=r.value;
-      // Solo filas con LOGIN válido (descartar filas vacías/basura del CSV)
-      const valid=rows.filter(row=>(row[C.LOGIN]||'').trim()!=='');
+      // Solo filas con CLIENTE o NOMBRE_USR_ULT_PLAN válido (descartar filas vacías/basura del CSV)
+      const valid=rows.filter(row=>
+        (row[C.CLIENTE]||'').trim()!=='' ||
+        (row[C.GESTOR]||'').trim()!==''
+      );
       allData.push(...valid);
       sheetStats[s.fecha]={
         total:valid.length,
