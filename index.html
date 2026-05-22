@@ -356,11 +356,11 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
         <div class="tbl-scroll">
           <table id="tbl-detalle">
             <thead><tr>
-              <th>#</th><th>Fec. Solicitud</th><th>Login</th><th>Cliente</th>
+              <th>#</th><th>Fec. Solicitud</th><th>Tipo Empresa</th><th>Login</th><th>Cliente</th>
               <th>Estado Servicio</th><th>Producto</th><th>Tipo Orden</th>
               <th>Téc. Sucursal</th><th>FE Últ Plan</th><th>Días sin gestión</th>
               <th>Obs Últ Plan</th><th>Motivo</th><th>Obs Replanif.</th>
-              <th>Est. Contrato</th><th>Tipo Empresa</th><th>Vendedor</th>
+              <th>Est. Contrato</th><th>Vendedor</th>
             </tr></thead>
             <tbody id="tbl-detalle-body"><tr><td colspan="16" class="empty">Selecciona un gestor en el gráfico</td></tr></tbody>
           </table>
@@ -444,12 +444,12 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
 <script>
 // ── CONFIG ──────────────────────────────────────────────────────────────
 const SHEET_ID = '1e0LPzPCBzAuO7HXpYAYSo7ogXQg0rau5-CFrGUfyzaE';
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz42uhI5KNPGLeSJd1OrFWLS_fHM-Oh-E18UDjjEV9cwdbtKMl0LhkBiksrXATdPAfc/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbznG_ihaBy4MYhDnZ2dgbnz6BHutbjR5Im8Qa9UexsE1HiKdqIpACh6USBOvc-n6LjE/exec';
 
 // ── CÓMO AGREGAR UNA NUEVA HOJA ────────────────────────────────────────
 // 1. Abre el Google Sheets y haz clic en la pestaña de la nueva hoja
 // 2. Mira la URL del navegador: ...spreadsheets/d/ID/edit#gid=XXXXXXXXX
-// 3. Agrega una línea al array con el formato: { fecha: 'DD-MM-YY', gid: NUhttps://script.google.com/macros/s/AKfycbz42uhI5KNPGLeSJd1OrFWLS_fHM-Oh-E18UDjjEV9cwdbtKMl0LhkBiksrXATdPAfc/execMERO_GID },
+// 3. Agrega una línea al array con el formato: { fecha: 'DD-MM-YY', gid: NUMERO_GID },
 // ────────────────────────────────────────────────────────────────────────
 const KNOWN_SHEETS = [
   {fecha:'01-05-26',gid:14159634},
@@ -470,7 +470,6 @@ const KNOWN_SHEETS = [
   {fecha:'19-05-26',gid:1190443317},
   {fecha:'20-05-26',gid:1609901699},
   {fecha:'21-05-26',gid:629799442},
-  {fecha:'22-05-26',gid:629799442},
   // ▼ AGREGAR NUEVAS HOJAS AQUÍ ▼
   // { fecha: 'DD-MM-YY', gid: PEGAR_GID_AQUI },
 ];
@@ -509,29 +508,59 @@ let allData=[], filtered=[], charts={}, sheetStats={};
 // ── UTILS ──────────────────────────────────────────────────────────────
 const appsScriptUrl = gid => `${APPS_SCRIPT_URL}?gid=${gid}`;
 
-function parseLine(l){
-  const v=[];let c='',q=false;
-  for(const ch of l){
-    if(ch==='"')q=!q;
-    else if(ch===','&&!q){v.push(c);c='';}
-    else c+=ch;
-  }
-  v.push(c);
-  return v.map(s=>s.replace(/^"|"$/g,'').trim());
-}
-
 function parseCSV(txt){
-  const lines=txt.split('\n').filter(l=>l.trim());
-  if(lines.length<2)return[];
-  const h=parseLine(lines[0]);
-  return lines.slice(1)
-    .filter(l=>!l.startsWith('__META__')&&!l.startsWith('__TOTAL__'))
-    .map(l=>{
-      const v=parseLine(l);
+  if(!txt||txt.trim().length<2)return[];
+
+  // Parser robusto que maneja campos con comas, comillas y saltos de línea
+  function parseAllFields(str){
+    const records=[];
+    let i=0, n=str.length;
+    while(i<n){
+      const record=[];
+      // Parsear una fila completa
+      while(i<n){
+        if(str[i]==='"'){
+          // Campo entre comillas
+          let field=''; i++; // saltar comilla inicial
+          while(i<n){
+            if(str[i]==='"'){
+              if(str[i+1]==='"'){field+='"';i+=2;} // comilla escapada
+              else{i++;break;} // fin del campo
+            } else {
+              field+=str[i++];
+            }
+          }
+          record.push(field.trim());
+        } else {
+          // Campo sin comillas — leer hasta coma o salto de línea
+          let field='';
+          while(i<n && str[i]!==',' && str[i]!=='\n' && str[i]!=='\r'){
+            field+=str[i++];
+          }
+          record.push(field.trim());
+        }
+        if(i<n && str[i]===','){i++;} // saltar coma
+        else break; // fin de fila
+      }
+      // Saltar saltos de línea
+      while(i<n && (str[i]==='\n'||str[i]==='\r'))i++;
+      if(record.length>0)records.push(record);
+    }
+    return records;
+  }
+
+  const records=parseAllFields(txt);
+  if(records.length<2)return[];
+
+  const h=records[0].map(k=>k.trim());
+  return records.slice(1)
+    .filter(r=>!r[0].startsWith('__META__')&&!r[0].startsWith('__TOTAL__'))
+    .map(vals=>{
       const o={};
-      h.forEach((k,i)=>{o[k.trim()]=(v[i]||'').trim();});
+      h.forEach((k,i)=>{o[k]=(vals[i]||'').trim();});
       return o;
-    }).filter(r=>Object.values(r).some(v=>v));
+    })
+    .filter(r=>Object.values(r).some(v=>v));
 }
 
 function parseDate(s){
@@ -900,6 +929,7 @@ function renderGestores(){
       return`<tr>
         <td class="td-num">${i+1}</td>
         <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
+        <td class="td-muted">${r[C.EMPRESA]||'—'}</td>
         <td class="td-login" style="font-weight:400;font-size:13px">${r[C.LOGIN]||'—'}</td>
         <td class="td-client">${r[C.CLIENTE]||'—'}</td>
         <td>${pill(getEst(r))}</td>
@@ -910,7 +940,6 @@ function renderGestores(){
         <td>${abDias(dG)}</td>
         <td style="font-size:13px;color:var(--amarillo)">${r[C.MOTIVO]||'—'}</td>
         <td class="td-muted">${r[C.CONTRATO]||'—'}</td>
-        <td class="td-muted">${r[C.EMPRESA]||'—'}</td>
         <td class="td-muted">${r[C.VENDEDOR]||'—'}</td>
       </tr>`;
     }).join('');
@@ -948,12 +977,12 @@ function renderGestores(){
       <div class="gc-detail" id="det-${uid}">
         <table>
           <thead><tr>
-            <th>#</th><th>Fec. Solicitud</th><th>Login</th><th>Cliente</th>
+            <th>#</th><th>Fec. Solicitud</th><th>Tipo Empresa</th><th>Login</th><th>Cliente</th>
             <th>Estado Servicio</th><th>Producto</th><th>Tipo Orden</th>
             <th>Téc. Sucursal</th><th>FE Últ Plan</th><th>Días sin gestión</th>
-            <th>Motivo</th><th>Est. Contrato</th><th>Tipo Empresa</th><th>Vendedor</th>
+            <th>Motivo</th><th>Est. Contrato</th><th>Vendedor</th>
           </tr></thead>
-          <tbody>${detalleFilas||'<tr><td colspan="14" class="empty">Sin órdenes activas</td></tr>'}</tbody>
+          <tbody>${detalleFilas||'<tr><td colspan="15" class="empty">Sin órdenes activas</td></tr>'}</tbody>
         </table>
       </div>
     </div>`;
@@ -1252,6 +1281,7 @@ function renderDetalleTabla(){
       return`<tr>
         <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
         <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
+        <td class="td-muted">${r[C.EMPRESA]||'—'}</td>
         <td class="td-login">${r[C.LOGIN]||'—'}</td>
         <td class="td-client">${r[C.CLIENTE]||'—'}</td>
         <td>${pill(getEst(r))}</td>
@@ -1264,7 +1294,6 @@ function renderDetalleTabla(){
         <td style="font-size:14px;color:var(--amarillo)">${r[C.MOTIVO]||'—'}</td>
         <td class="td-obs" title="${r[C.OBS_REPLAN]||''}">${obs2}</td>
         <td class="td-muted">${r[C.CONTRATO]||'—'}</td>
-        <td class="td-muted">${r[C.EMPRESA]||'—'}</td>
         <td class="td-muted">${r[C.VENDEDOR]||'—'}</td>
       </tr>`;
     }).join(''):
@@ -1283,10 +1312,10 @@ function exportarExcel(){
   let rows=d.rows.filter(tieneCarga);
   if(_detalleEstadoFil!=='all')rows=rows.filter(r=>getEst(r)===_detalleEstadoFil);
 
-  const headers=['FECHA_SOLICITUD','NOMBRE_USR_ULT_PLAN','CLIENTE','LOGIN','ESTADO SERVICIO',
+  const headers=['FECHA_SOLICITUD','NOMBRE_USR_ULT_PLAN','TIPO_EMPRESA','CLIENTE','LOGIN','ESTADO SERVICIO',
     'PRODUCTO','TIPO ÓRDEN','TÉCNICA SUCURSAL','FE ULT PLAN','DIAS_SIN_GESTION',
     'OBS_ULT_PLAN','MOTIVO','ULT_OBS_REPLANIFICADA','ESTADO_CONTRATO','TIPO_EMPRESA','VENDEDOR','CORTE'];
-  const colKeys=[C.FECHA_SOL,C.GESTOR,C.CLIENTE,C.LOGIN,C.EST,
+  const colKeys=[C.FECHA_SOL,C.GESTOR,C.EMPRESA,C.CLIENTE,C.LOGIN,C.EST,
     C.PRODUCTO,C.TIPO_ORDEN,C.SUCURSAL,C.FE_PLAN,'_dias',
     C.OBS_PLAN,C.MOTIVO,C.OBS_REPLAN,C.CONTRATO,C.EMPRESA,C.VENDEDOR,'_fecha'];
 
