@@ -169,6 +169,7 @@ tr:hover td{background:rgba(0,176,240,.06)}
 .leg-sq{width:8px;height:8px;border-radius:2px;flex-shrink:0}
 
 .empty{text-align:center;padding:2rem;color:var(--muted);font-size:12px;font-family:var(--font-cond);letter-spacing:1px}
+
 /* ── DETALLE EXPANDIBLE ── */
 .gc-toggle{display:flex;align-items:center;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);cursor:pointer;font-family:var(--font-cond);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);transition:color .15s;user-select:none}
 .gc-toggle:hover{color:var(--turquesa)}
@@ -184,6 +185,7 @@ tr:hover td{background:rgba(0,176,240,.06)}
 .gc-detail td{padding:7px 10px;color:#d0dff0;border-bottom:1px solid rgba(0,176,240,.06);white-space:nowrap;vertical-align:middle}
 .gc-detail tr:last-child td{border-bottom:none}
 .gc-detail tr:hover td{background:rgba(0,176,240,.07)}
+
 footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;letter-spacing:.5px;border-top:1px solid var(--border);margin-top:2rem}
 
 @media(max-width:768px){
@@ -421,7 +423,7 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
     <div class="section-title"><span class="dot-sec"></span>Detalle Consolidado por Gestor</div>
     <div class="tbl-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <span style="font-size:11px;color:var(--muted)">Resumen de carga activa por gestor</span>
+        <span style="font-size:11px;color:var(--muted)">Resumen de carga activa por gestor — sin deduplicación, datos exactos del Sheets</span>
         <span id="tbl-count" style="font-size:10px;color:var(--muted);font-family:var(--font-cond);letter-spacing:1px"></span>
       </div>
       <table>
@@ -436,18 +438,12 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
 <script>
 // ── CONFIG ──────────────────────────────────────────────────────────────
 const SHEET_ID = '1e0LPzPCBzAuO7HXpYAYSo7ogXQg0rau5-CFrGUfyzaE';
-// Si el Sheets es de Google Workspace (dominio corporativo), configurar Apps Script proxy:
-// 1. Ir a script.google.com → Nuevo proyecto
-// 2. Pegar el código del proxy (ver comentario en loadAll)
-// 3. Publicar como Web App (Ejecutar como: yo, Acceso: Cualquiera)
-// 4. Pegar la URL aquí:
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbznG_ihaBy4MYhDnZ2dgbnz6BHutbjR5Im8Qa9UexsE1HiKdqIpACh6USBOvc-n6LjE/exec'; // Ej: 'https://script.google.com/macros/s/XXXX/exec'
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbznG_ihaBy4MYhDnZ2dgbnz6BHutbjR5Im8Qa9UexsE1HiKdqIpACh6USBOvc-n6LjE/exec';
+
 // ── CÓMO AGREGAR UNA NUEVA HOJA ────────────────────────────────────────
 // 1. Abre el Google Sheets y haz clic en la pestaña de la nueva hoja
 // 2. Mira la URL del navegador: ...spreadsheets/d/ID/edit#gid=XXXXXXXXX
-//    El número después de #gid= es el GID que necesitas
-// 3. Agrega una línea al final del array con el formato:
-//    { fecha: 'DD-MM-YY', gid: NUMERO_GID },
+// 3. Agrega una línea al array con el formato: { fecha: 'DD-MM-YY', gid: NUMERO_GID },
 // ────────────────────────────────────────────────────────────────────────
 const KNOWN_SHEETS = [
   {fecha:'01-05-26',gid:14159634},
@@ -469,47 +465,78 @@ const KNOWN_SHEETS = [
   {fecha:'20-05-26',gid:1609901699},
   {fecha:'21-05-26',gid:629799442},
   // ▼ AGREGAR NUEVAS HOJAS AQUÍ ▼
-  // { fecha: '21-05-26', gid: PEGAR_GID_AQUI },
+  // { fecha: 'DD-MM-YY', gid: PEGAR_GID_AQUI },
 ];
-const C={GESTOR:'NOMBRE_USR_ULT_PLAN',CLIENTE:'CLIENTE',FE_PLAN:'FE ULT PLAN',LOGIN:'LOGIN',EST:'ESTADO SERVICIO',MOTIVO:'MOTIVO',EMPRESA:'TIPO_EMPRESA',FECHA_SOL:'FECHA_SOLICITUD',ENLACE:'TIPO ENLACE',ID_SERV:'ID_SERVICIO',PRODUCTO:'PRODUCTO',TIPO_ORDEN:'TIPO ÓRDEN',SUCURSAL:'TÉCNICA SUCURSAL',OBS_PLAN:'OBS_ULT_PLAN',OBS_REPLAN:'ULT_OBS_REPLANIFICADA',CONTRATO:'ESTADO_CONTRATO',VENDEDOR:'VENDEDOR'};
+
+const C={
+  GESTOR:'NOMBRE_USR_ULT_PLAN',
+  CLIENTE:'CLIENTE',
+  FE_PLAN:'FE ULT PLAN',
+  LOGIN:'LOGIN',
+  EST:'ESTADO SERVICIO',
+  MOTIVO:'MOTIVO',
+  EMPRESA:'TIPO_EMPRESA',
+  FECHA_SOL:'FECHA_SOLICITUD',
+  ENLACE:'TIPO ENLACE',
+  ID_SERV:'ID_SERVICIO',
+  PRODUCTO:'PRODUCTO',
+  TIPO_ORDEN:'TIPO ÓRDEN',
+  SUCURSAL:'TÉCNICA SUCURSAL',
+  OBS_PLAN:'OBS_ULT_PLAN',
+  OBS_REPLAN:'ULT_OBS_REPLANIFICADA',
+  CONTRATO:'ESTADO_CONTRATO',
+  VENDEDOR:'VENDEDOR'
+};
+
 const PALETTE=['#00B0F0','#FF44B0','#FF6F42','#FFA700','#8B6FE8','#6EBEEB','#34D399','#FF9A44','#AA7FD0','#64B4F5'];
 const GC='rgba(0,176,240,0.08)';
 const TST={color:'#9BBCD8',font:{size:10,family:"'Barlow Condensed',sans-serif"}};
-
-// Estado colores
 const EST_COL={Planificada:'#00B0F0',Detenido:'#FF44B0',Replanificada:'#FFA700',AsignadoTarea:'#6EBEEB',PrePlanificada:'#8B6FE8'};
 const EST_PILL={Planificada:'p-plan',Detenido:'p-det',Replanificada:'p-replan',AsignadoTarea:'p-asig',PrePlanificada:'p-pre'};
 
 // ── ESTADO ─────────────────────────────────────────────────────────────
-let allData=[],filtered=[],charts={},sheetStats={};
+// allData: TODOS los registros de TODAS las hojas, sin ninguna deduplicación
+// filtered: subconjunto de allData según los filtros activos del usuario
+let allData=[], filtered=[], charts={}, sheetStats={};
 
 // ── UTILS ──────────────────────────────────────────────────────────────
-// ── URLS ───────────────────────────────────────────────────────────────
-// Apps Script proxy (principal) - ver apps_script_proxy.gs para configurar
 const appsScriptUrl = gid => `${APPS_SCRIPT_URL}?gid=${gid}`;
-function parseLine(l){const v=[];let c='',q=false;for(const ch of l){if(ch==='"')q=!q;else if(ch===','&&!q){v.push(c);c='';}else c+=ch;}v.push(c);return v.map(s=>s.replace(/^"|"$/g,'').trim());}
-function parseCSV(txt){const lines=txt.split('\n').filter(l=>l.trim());if(lines.length<2)return[];const h=parseLine(lines[0]);return lines.slice(1).map(l=>{const v=parseLine(l);const o={};h.forEach((k,i)=>{o[k.trim()]=(v[i]||'').trim();});return o;}).filter(r=>Object.values(r).some(v=>v));}
-// Parsea múltiples formatos de fecha que puede enviar Google Sheets/Apps Script
+
+function parseLine(l){
+  const v=[];let c='',q=false;
+  for(const ch of l){
+    if(ch==='"')q=!q;
+    else if(ch===','&&!q){v.push(c);c='';}
+    else c+=ch;
+  }
+  v.push(c);
+  return v.map(s=>s.replace(/^"|"$/g,'').trim());
+}
+
+function parseCSV(txt){
+  const lines=txt.split('\n').filter(l=>l.trim());
+  if(lines.length<2)return[];
+  const h=parseLine(lines[0]);
+  return lines.slice(1).map(l=>{
+    const v=parseLine(l);
+    const o={};
+    h.forEach((k,i)=>{o[k.trim()]=(v[i]||'').trim();});
+    return o;
+  }).filter(r=>Object.values(r).some(v=>v));
+}
+
 function parseDate(s){
   if(!s||!s.trim()||s.trim()==='—'||s.trim()==='-')return null;
   const t=s.trim();
   let m;
-  // DD/MM/YYYY
   m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if(m)return new Date(+m[3],+m[2]-1,+m[1]);
-  // D/M/YYYY o M/D/YYYY — intentar ambos; si mes>12 asumir D/M
-  m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if(m){ const a=+m[1],b=+m[2],y=+m[3]; return a>12?new Date(y,b-1,a):new Date(y,a-1,b); }
-  // DD-MM-YYYY
   m=t.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
   if(m)return new Date(+m[3],+m[2]-1,+m[1]);
-  // DD-MM-YY
   m=t.match(/^(\d{1,2})-(\d{1,2})-(\d{2})$/);
   if(m)return new Date(2000+ +m[3],+m[2]-1,+m[1]);
-  // YYYY-MM-DD (ISO)
   m=t.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if(m)return new Date(+m[1],+m[2]-1,+m[3]);
-  // Número serial de Excel
   if(/^\d+(\.\d+)?$/.test(t)){
     const serial=Math.floor(parseFloat(t));
     if(serial>40000&&serial<60000){
@@ -517,35 +544,28 @@ function parseDate(s){
       return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());
     }
   }
-  // "Mon Jan 01 2026..." formato toString de Date de Apps Script
   m=t.match(/(\w+)\s+(\d{1,2})\s+(\d{4})/);
-  if(m){ const nd=new Date(t); if(!isNaN(nd.getTime()))return new Date(nd.getFullYear(),nd.getMonth(),nd.getDate()); }
-  // Último recurso: Date nativo
+  if(m){const nd=new Date(t);if(!isNaN(nd.getTime()))return new Date(nd.getFullYear(),nd.getMonth(),nd.getDate());}
   const nd=new Date(t);
   if(!isNaN(nd.getTime()))return new Date(nd.getFullYear(),nd.getMonth(),nd.getDate());
   return null;
 }
 
-// Formatea fecha a DD/MM/YYYY
 function fmtDate(s){
   if(!s||!s.trim())return '—';
   const d=parseDate(s);
-  if(!d||isNaN(d.getTime()))return s; // retornar original si no parsea
-  const dd=String(d.getDate()).padStart(2,'0');
-  const mm=String(d.getMonth()+1).padStart(2,'0');
-  const yyyy=d.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
+  if(!d||isNaN(d.getTime()))return s;
+  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
 }
 
-// Calcula días transcurridos desde una fecha hasta HOY (positivo = días pasados)
 function diasDesde(f){
   if(!f||!f.trim())return null;
   const d=parseDate(f);
   if(!d||isNaN(d.getTime()))return null;
   const hoy=new Date();hoy.setHours(0,0,0,0);
-  const diff=Math.floor((hoy-d)/86400000);
-  return diff; // positivo = fecha pasada, negativo = fecha futura
+  return Math.floor((hoy-d)/86400000);
 }
+
 function getEst(r){return(r[C.EST]||'').trim();}
 const tieneCarga=r=>{const e=getEst(r);return['Planificada','Detenido','Replanificada','AsignadoTarea'].includes(e);};
 const esPlan=r=>getEst(r)==='Planificada';
@@ -553,9 +573,11 @@ const esDet =r=>getEst(r)==='Detenido';
 const esRep =r=>getEst(r)==='Replanificada';
 const esAsig=r=>getEst(r)==='AsignadoTarea';
 const esPre =r=>getEst(r)==='PrePlanificada';
+
 function count(data,key){return data.reduce((a,r)=>{const v=r[key]||'Sin dato';a[v]=(a[v]||0)+1;return a;},{});}
 function topN(obj,n){return Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,n);}
 function pill(v){const c=EST_PILL[v]||'p-gray';return`<span class="pill ${c}">${v||'—'}</span>`;}
+
 function abDias(d){
   if(d===null||d===undefined)return`<span class="ab ab-nd">—</span>`;
   if(d<0) return`<span class="ab ab-ok">📅 ${Math.abs(d)}d fut.</span>`;
@@ -565,6 +587,7 @@ function abDias(d){
   if(d<=10)return`<span class="ab ab-tom"  title="${d} días sin gestión">⚠ ${d}d</span>`;
   return      `<span class="ab ab-crit" title="${d} días sin gestión">🔴 ${d}d</span>`;
 }
+
 function abSol(d){
   if(d===null||d===undefined)return`<span class="ab ab-nd">—</span>`;
   if(d<0)return`<span class="ab ab-ok">📅 ${Math.abs(d)}d</span>`;
@@ -591,17 +614,16 @@ function switchTab(t){
   document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['carga','alertas','analisis'][i]===t));
 }
 
-// ── FILTROS ────────────────────────────────────────────────────────────
 // ── SEARCHABLE MULTI-SELECT FILTERS ────────────────────────────────────
-const SF = {}; // registro de instancias: { id: { selected: Set, all: [] } }
+const SF={};
 
-function sfCreate(containerId, placeholder='Todos'){
-  const wrap = document.getElementById(containerId);
-  if(!wrap) return;
-  wrap.innerHTML = `
+function sfCreate(containerId,placeholder='Todos'){
+  const wrap=document.getElementById(containerId);
+  if(!wrap)return;
+  wrap.innerHTML=`
     <div class="sf-input-row" onclick="sfToggle('${containerId}')">
       <div class="sf-chips" id="${containerId}-chips"></div>
-      <input class="sf-input" id="${containerId}-inp" placeholder="${placeholder}" 
+      <input class="sf-input" id="${containerId}-inp" placeholder="${placeholder}"
         oninput="sfSearch('${containerId}')" onclick="event.stopPropagation()">
       <span class="sf-arrow">▼</span>
     </div>
@@ -609,161 +631,142 @@ function sfCreate(containerId, placeholder='Todos'){
       <div class="sf-search"><input placeholder="Buscar..." oninput="sfSearch('${containerId}')" id="${containerId}-search"></div>
       <div class="sf-list" id="${containerId}-list"></div>
     </div>`;
-  SF[containerId] = { selected: new Set(), all: [] };
-  // Cerrar al clic fuera
-  document.addEventListener('click', e => {
-    if(!wrap.contains(e.target)) wrap.classList.remove('open');
-  }, true);
+  SF[containerId]={selected:new Set(),all:[]};
+  document.addEventListener('click',e=>{
+    if(!wrap.contains(e.target))wrap.classList.remove('open');
+  },true);
 }
 
 function sfToggle(id){
-  const wrap = document.getElementById(id);
-  const isOpen = wrap.classList.contains('open');
-  // Cerrar todos
-  Object.keys(SF).forEach(k => document.getElementById(k)?.classList.remove('open'));
-  if(!isOpen){ wrap.classList.add('open'); document.getElementById(id+'-search')?.focus(); }
+  const wrap=document.getElementById(id);
+  const isOpen=wrap.classList.contains('open');
+  Object.keys(SF).forEach(k=>document.getElementById(k)?.classList.remove('open'));
+  if(!isOpen){wrap.classList.add('open');document.getElementById(id+'-search')?.focus();}
 }
 
-function sfPopulate(id, vals){
-  if(!SF[id]) return;
-  const unique = [...new Set(vals)].filter(Boolean).sort();
-  SF[id].all = unique;
-  sfRenderList(id, '');
+function sfPopulate(id,vals){
+  if(!SF[id])return;
+  const unique=[...new Set(vals)].filter(Boolean).sort();
+  SF[id].all=unique;
+  sfRenderList(id,'');
   sfRenderChips(id);
 }
 
 function sfSearch(id){
-  const q = (document.getElementById(id+'-search')?.value || document.getElementById(id+'-inp')?.value || '').toLowerCase();
-  sfRenderList(id, q);
+  const q=(document.getElementById(id+'-search')?.value||document.getElementById(id+'-inp')?.value||'').toLowerCase();
+  sfRenderList(id,q);
 }
 
-function sfRenderList(id, q){
-  const inst = SF[id]; if(!inst) return;
-  const list = document.getElementById(id+'-list'); if(!list) return;
-  const opts     = q ? inst.all.filter(v => v.toLowerCase().includes(q)) : inst.all;
-  const allCount = inst.all.length;
-  const selCount = inst.selected.size;
-  // "Todos" = todos seleccionados
-  const allChecked    = selCount === allCount;
-  const noneChecked   = selCount === 0;
-  const indeterminate = selCount > 0 && selCount < allCount;
-
-  let html = `<div class="sf-opt sf-opt-all" onclick="sfToggleAll('${id}')">
+function sfRenderList(id,q){
+  const inst=SF[id];if(!inst)return;
+  const list=document.getElementById(id+'-list');if(!list)return;
+  const opts=q?inst.all.filter(v=>v.toLowerCase().includes(q)):inst.all;
+  const allCount=inst.all.length;
+  const selCount=inst.selected.size;
+  const allChecked=selCount===allCount;
+  const indeterminate=selCount>0&&selCount<allCount;
+  let html=`<div class="sf-opt sf-opt-all" onclick="sfToggleAll('${id}')">
     <input type="checkbox" id="${id}-chk-all" ${allChecked?'checked':''} readonly>
     Todos (${allCount})${indeterminate?' <span style="color:var(--amarillo);font-size:10px"> · '+selCount+' selec.</span>':''}
   </div>`;
-
-  opts.forEach(v => {
-    const realIdx  = inst.all.indexOf(v);
-    const isChecked = inst.selected.has(v);
-    const dimCls   = !isChecked && selCount > 0 ? 'dim' : '';
-    const selCls   = isChecked ? 'selected' : '';
-    const display  = v.length > 40 ? v.slice(0,38)+'…' : v;
-    html += `<div class="sf-opt ${selCls} ${dimCls}" onclick="sfToggleByIdx('${id}',${realIdx})">
+  opts.forEach(v=>{
+    const realIdx=inst.all.indexOf(v);
+    const isChecked=inst.selected.has(v);
+    const dimCls=!isChecked&&selCount>0?'dim':'';
+    const selCls=isChecked?'selected':'';
+    const display=v.length>40?v.slice(0,38)+'…':v;
+    html+=`<div class="sf-opt ${selCls} ${dimCls}" onclick="sfToggleByIdx('${id}',${realIdx})">
       <input type="checkbox" ${isChecked?'checked':''} readonly>
       ${display}
     </div>`;
   });
-
-  list.innerHTML = html;
+  list.innerHTML=html;
   setTimeout(()=>{
-    const chkAll = document.getElementById(id+'-chk-all');
-    if(chkAll){ chkAll.checked = allChecked; chkAll.indeterminate = indeterminate; }
-  }, 0);
+    const chkAll=document.getElementById(id+'-chk-all');
+    if(chkAll){chkAll.checked=allChecked;chkAll.indeterminate=indeterminate;}
+  },0);
 }
 
-
-function sfToggleByIdx(id, idx){
-  const inst = SF[id]; if(!inst) return;
-  const val = inst.all[idx];
-  if(val === undefined) return;
-  sfToggleVal(id, val);
+function sfToggleByIdx(id,idx){
+  const inst=SF[id];if(!inst)return;
+  const val=inst.all[idx];
+  if(val===undefined)return;
+  sfToggleVal(id,val);
 }
 
-function sfToggleVal(id, val){
-  const inst = SF[id]; if(!inst) return;
-  if(inst.selected.has(val)) inst.selected.delete(val);
+function sfToggleVal(id,val){
+  const inst=SF[id];if(!inst)return;
+  if(inst.selected.has(val))inst.selected.delete(val);
   else inst.selected.add(val);
-  sfRenderList(id, document.getElementById(id+'-search')?.value || '');
+  sfRenderList(id,document.getElementById(id+'-search')?.value||'');
   sfRenderChips(id);
   applyFilters();
 }
 
 function sfToggleAll(id){
-  const inst = SF[id]; if(!inst) return;
-  if(inst.selected.size === inst.all.length){
-    // Ya todos seleccionados → limpiar (sin filtro activo)
+  const inst=SF[id];if(!inst)return;
+  if(inst.selected.size===inst.all.length){
     inst.selected.clear();
-  } else {
-    // Seleccionar TODOS
-    inst.all.forEach(v => inst.selected.add(v));
+  }else{
+    inst.all.forEach(v=>inst.selected.add(v));
   }
-  const q = document.getElementById(id+'-search')?.value || '';
-  sfRenderList(id, q);
+  const q=document.getElementById(id+'-search')?.value||'';
+  sfRenderList(id,q);
   sfRenderChips(id);
   applyFilters();
 }
 
 function sfRenderChips(id){
-  const inst  = SF[id]; if(!inst) return;
-  const chips = document.getElementById(id+'-chips'); if(!chips) return;
-  const inp   = document.getElementById(id+'-inp');
-  const sel   = inst.selected.size;
-  const total = inst.all.length;
-  // Sin selección → placeholder "Todos"
-  if(sel === 0){
-    chips.innerHTML = '';
-    if(inp) inp.placeholder = 'Todos';
-    return;
-  }
-  if(inp) inp.placeholder = '';
-  // Todos seleccionados → chip especial
-  if(sel === total){
-    chips.innerHTML = '<span class="sf-chip" style="background:rgba(0,176,240,.28)">Todos ✓</span>';
-    return;
-  }
-  // Selección parcial → chips individuales
-  const arr   = [...inst.selected];
-  const shown = arr.slice(0,2);
-  const extra = arr.length - shown.length;
-  chips.innerHTML = shown.map(v => {
-    const idx = inst.all.indexOf(v);
-    return '<span class="sf-chip">' + (v.length>14 ? v.slice(0,13)+'…' : v) +
+  const inst=SF[id];if(!inst)return;
+  const chips=document.getElementById(id+'-chips');if(!chips)return;
+  const inp=document.getElementById(id+'-inp');
+  const sel=inst.selected.size;
+  const total=inst.all.length;
+  if(sel===0){chips.innerHTML='';if(inp)inp.placeholder='Todos';return;}
+  if(inp)inp.placeholder='';
+  if(sel===total){chips.innerHTML='<span class="sf-chip" style="background:rgba(0,176,240,.28)">Todos ✓</span>';return;}
+  const arr=[...inst.selected];
+  const shown=arr.slice(0,2);
+  const extra=arr.length-shown.length;
+  chips.innerHTML=shown.map(v=>{
+    const idx=inst.all.indexOf(v);
+    return '<span class="sf-chip">'+(v.length>14?v.slice(0,13)+'…':v)+
       '<span class="sf-chip-x" onclick="event.stopPropagation();sfToggleByIdx(\''+id+'\','+idx+')">×</span></span>';
-  }).join('') + (extra ? '<span class="sf-chip" style="background:rgba(0,176,240,.15)">+'+extra+'</span>' : '');
+  }).join('')+(extra?'<span class="sf-chip" style="background:rgba(0,176,240,.15)">+'+extra+'</span>':'');
 }
-
-
 
 function sfGetVals(id){
-  const inst = SF[id];
-  if(!inst || inst.selected.size === 0) return null; // vacío = sin filtro
-  return inst.selected; // filtrar solo por los seleccionados
+  const inst=SF[id];
+  if(!inst||inst.selected.size===0)return null;
+  return inst.selected;
 }
 
-// Inicializar los 6 filtros
 function initFilters(){
-  sfCreate('sf-gestor', 'Todos');
-  sfCreate('sf-estado', 'Todos');
+  sfCreate('sf-gestor','Todos');
+  sfCreate('sf-estado','Todos');
   sfCreate('sf-empresa','Todos');
-  sfCreate('sf-enlace', 'Todos');
-  sfCreate('sf-login',  'Buscar login...');
-  sfCreate('sf-fecha',  'Todas');
+  sfCreate('sf-enlace','Todos');
+  sfCreate('sf-login','Buscar login...');
+  sfCreate('sf-fecha','Todas');
 }
 
-function populateSel(sfId, vals){
-  sfPopulate(sfId, vals);
+function populateSel(sfId,vals){
+  sfPopulate(sfId,vals);
 }
 
 function applyFilters(){
-  const g  = sfGetVals('sf-gestor');
-  const e  = sfGetVals('sf-estado');
-  const t  = sfGetVals('sf-empresa');
-  const l  = sfGetVals('sf-enlace');
-  const lg = sfGetVals('sf-login');
-  const f  = sfGetVals('sf-fecha');
+  const g =sfGetVals('sf-gestor');
+  const e =sfGetVals('sf-estado');
+  const t =sfGetVals('sf-empresa');
+  const l =sfGetVals('sf-enlace');
+  const lg=sfGetVals('sf-login');
+  const f =sfGetVals('sf-fecha');
 
-  filtered = allData.filter(r =>
+  // ── SIN DEDUPLICACIÓN ────────────────────────────────────────────────
+  // filtered contiene EXACTAMENTE las filas del Sheets que cumplen los filtros.
+  // Si el usuario filtra Gestor=X + Corte=21-05-26, verá exactamente
+  // las filas de esa hoja asignadas a ese gestor, sin eliminar duplicados.
+  filtered=allData.filter(r=>
     (!g  || g.has(r[C.GESTOR]))&&
     (!e  || e.has(getEst(r)))&&
     (!t  || t.has(r[C.EMPRESA]))&&
@@ -772,41 +775,33 @@ function applyFilters(){
     (!f  || f.has(r._fecha))
   );
 
-  const notaCorte = document.getElementById('nota-corte');
-  if(notaCorte) notaCorte.style.display = (f !== null) ? '' : 'none';
+  const notaCorte=document.getElementById('nota-corte');
+  if(notaCorte)notaCorte.style.display=(f!==null)?'':'none';
   renderAll();
 }
-
 
 function clearFilters(){
-  Object.keys(SF).forEach(id => { if(SF[id]) SF[id].selected.clear(); sfRenderChips(id); sfRenderList(id,''); });
+  Object.keys(SF).forEach(id=>{if(SF[id]){SF[id].selected.clear();sfRenderChips(id);sfRenderList(id,'');}});
   filtered=[...allData];
-  const notaCorte = document.getElementById('nota-corte');
-  if(notaCorte) notaCorte.style.display = 'none';
+  const notaCorte=document.getElementById('nota-corte');
+  if(notaCorte)notaCorte.style.display='none';
   renderAll();
-}
-
-// ── SIN DEDUPLICACIÓN ────────────────────────────────────────────────
-// Los datos se muestran exactamente como están en filtered.
-// El usuario controla qué ve mediante los filtros (gestor, corte, estado, etc.)
-function getDedupData(data){
-  return data; // siempre datos exactos, sin modificar
 }
 
 // ── KPIs ───────────────────────────────────────────────────────────────
+// Sin deduplicación: los KPIs reflejan exactamente los registros en filtered
 function renderKPIs(){
-  // Datos deduplicados: un registro por login (el más reciente)
-  const dd   = getDedupData(filtered);
-  const n    = dd.length;
-  const gest = new Set(dd.filter(tieneCarga).map(r=>r[C.GESTOR]).filter(Boolean)).size;
-  const plan = dd.filter(esPlan).length;
-  const det  = dd.filter(esDet).length;
-  const rep  = dd.filter(esRep).length;
-  const asig = dd.filter(esAsig).length;
-  const pre  = dd.filter(esPre).length;
-  const cli  = new Set(dd.map(r=>r[C.CLIENTE]).filter(Boolean)).size;
-  const hoj  = new Set(filtered.map(r=>r._fecha)).size; // hojas reales cargadas
-  const pct  = v => n ? Math.round(v/n*100)+'%' : '—';
+  const n    =filtered.length;
+  const gest =new Set(filtered.filter(tieneCarga).map(r=>r[C.GESTOR]).filter(Boolean)).size;
+  const plan =filtered.filter(esPlan).length;
+  const det  =filtered.filter(esDet).length;
+  const rep  =filtered.filter(esRep).length;
+  const asig =filtered.filter(esAsig).length;
+  const pre  =filtered.filter(esPre).length;
+  const cli  =new Set(filtered.map(r=>r[C.CLIENTE]).filter(Boolean)).size;
+  const hoj  =new Set(filtered.map(r=>r._fecha)).size;
+  const pct  =v=>n?Math.round(v/n*100)+'%':'—';
+
   document.getElementById('k-total').textContent=n.toLocaleString('es-EC');
   document.getElementById('k-gest').textContent=gest;
   document.getElementById('k-plan').textContent=plan.toLocaleString('es-EC');
@@ -821,12 +816,15 @@ function renderKPIs(){
   document.getElementById('k-rep-s').textContent=pct(rep)+' del total';
   document.getElementById('k-asig-s').textContent=pct(asig)+' · listos a ejecutar';
   document.getElementById('k-misc-s').textContent='fechas · '+cli.toLocaleString('es-EC')+' clientes';
+
   const dates=filtered.map(r=>r._fecha).filter(Boolean).sort();
   if(dates.length)document.getElementById('corte-val').textContent=dates[dates.length-1];
 }
 
 // ── CARGA GESTORES ─────────────────────────────────────────────────────
-let _gcIdCounter = 0;
+// SIN DEDUPLICACIÓN: se usan directamente las filas de `filtered`.
+// Cada fila del Sheets cuenta como un registro independiente.
+let _gcIdCounter=0;
 
 function toggleDetalle(id){
   const tog=document.getElementById('tog-'+id);
@@ -835,25 +833,12 @@ function toggleDetalle(id){
   tog.classList.toggle('open',open);
 }
 
-function renderGestores(){  _gcIdCounter=0;
+function renderGestores(){
+  _gcIdCounter=0;
 
-  // ── DEDUPLICAR POR LOGIN: quedarse con el registro del corte más reciente ──
-  // Si un login aparece en múltiples hojas (cortes de fecha), tomamos solo
-  // el registro de la fecha de corte más reciente para ese login.
-  const loginLatest = {};
-  filtered.forEach(r => {
-    const login = r[C.LOGIN];
-    if(!login) return;
-    const prev = loginLatest[login];
-    // Comparar fechas de corte (_fecha = 'DD-MM-YY')
-    if(!prev || r._fecha > prev._fecha) loginLatest[login] = r;
-  });
-  // Registros sin login siempre se incluyen (uno por fila)
-  const sinLogin = filtered.filter(r => !r[C.LOGIN]);
-  const dedupData = Object.values(loginLatest).concat(sinLogin);
-
+  // Agrupamos directamente filtered — sin ninguna deduplicación por login
   const map={};
-  dedupData.forEach(r=>{
+  filtered.forEach(r=>{
     const g=r[C.GESTOR]||'Sin gestor';
     if(!map[g])map[g]={plan:0,det:0,rep:0,asig:0,cli:new Set(),maxDias:0,rows:[]};
     if(esPlan(r))map[g].plan++;
@@ -866,15 +851,20 @@ function renderGestores(){  _gcIdCounter=0;
     map[g].rows.push(r);
   });
 
-  const rows=Object.entries(map).filter(([,d])=>d.plan+d.det+d.rep+d.asig>0)
+  const rows=Object.entries(map)
+    .filter(([,d])=>d.plan+d.det+d.rep+d.asig>0)
     .sort((a,b)=>(b[1].plan+b[1].det+b[1].rep+b[1].asig)-(a[1].plan+a[1].det+a[1].rep+a[1].asig));
+
   const grid=document.getElementById('gestores-grid');
   if(!rows.length){grid.innerHTML='<div class="empty">Sin datos con carga activa</div>';return;}
 
   grid.innerHTML=rows.map(([g,d])=>{
     const uid=++_gcIdCounter;
     const tot=d.plan+d.det+d.rep+d.asig;
-    const pp=tot?Math.round(d.plan/tot*100):0,pd=tot?Math.round(d.det/tot*100):0,pr=tot?Math.round(d.rep/tot*100):0,pa=tot?Math.round(d.asig/tot*100):0;
+    const pp=tot?Math.round(d.plan/tot*100):0;
+    const pd=tot?Math.round(d.det/tot*100):0;
+    const pr=tot?Math.round(d.rep/tot*100):0;
+    const pa=tot?Math.round(d.asig/tot*100):0;
     const maxD=d.maxDias;
     const alertCls=maxD>7?'gb-crit':maxD>3?'gb-warn':'gb-ok';
     const alertTxt=maxD<0?`📅 ${Math.abs(maxD)}d futura`:
@@ -883,7 +873,6 @@ function renderGestores(){  _gcIdCounter=0;
                    maxD>3?`⚡ ${maxD}d sin gestión`:
                    `✓ ${maxD}d`;
 
-    // Ordenar filas: primero por estado, luego por días sin gestión desc
     const estOrd={Planificada:0,Detenido:1,Replanificada:2,AsignadoTarea:3,PrePlanificada:4};
     const detRows=[...d.rows]
       .filter(r=>tieneCarga(r))
@@ -895,7 +884,7 @@ function renderGestores(){  _gcIdCounter=0;
 
     const detalleFilas=detRows.map((r,i)=>{
       const dG=diasDesde(r[C.FE_PLAN]);
-      return `<tr>
+      return`<tr>
         <td class="td-num">${i+1}</td>
         <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
         <td class="td-login" style="font-weight:400;font-size:13px">${r[C.LOGIN]||'—'}</td>
@@ -913,12 +902,14 @@ function renderGestores(){  _gcIdCounter=0;
       </tr>`;
     }).join('');
 
+    // Cortes únicos presentes en este gestor (para info)
+    const cortesGestor=[...new Set(detRows.map(r=>r._fecha))].sort().join(', ');
 
     return`<div class="gestor-card">
       <div class="gc-header">
         <div class="gc-name">👤 ${g}</div>
         <div class="gc-badges">
-          <span class="gc-badge gb-total">${tot} órdenes · ${d.cli.size} clientes · ${new Set(d.rows.filter(tieneCarga).map(r=>r[C.LOGIN]).filter(Boolean)).size} logins únicos</span>
+          <span class="gc-badge gb-total">${tot} órdenes · ${d.cli.size} clientes únicos</span>
           <span class="gc-badge ${alertCls}">${alertTxt}</span>
         </div>
       </div>
@@ -938,8 +929,7 @@ function renderGestores(){  _gcIdCounter=0;
         <span class="gc-toggle-arrow">▼</span>
         Ver detalle de ${detRows.length} órdenes
         <span style="font-size:10px;color:var(--muted);font-weight:400;margin-left:6px">
-          · ${new Set(detRows.map(r=>r[C.LOGIN]).filter(Boolean)).size} logins únicos
-          · corte: ${[...new Set(detRows.map(r=>r._fecha))].join(', ')}
+          · cortes: ${cortesGestor}
         </span>
       </div>
       <div class="gc-detail" id="det-${uid}">
@@ -958,12 +948,14 @@ function renderGestores(){  _gcIdCounter=0;
 }
 
 // ── ALERTAS ────────────────────────────────────────────────────────────
+// Sin deduplicación: se usan las filas de filtered tal cual
 function renderAlertas(){
-  // Usar datos deduplicados: un registro por login (el más reciente)
-  const dd1 = getDedupData(filtered);
-  const rows1=dd1.filter(tieneCarga)
+  const rows1=filtered.filter(tieneCarga)
     .map(r=>({...r,_dG:diasDesde(r[C.FE_PLAN]),_dS:diasDesde(r[C.FECHA_SOL])}))
-    .filter(r=>r._dG!==null).sort((a,b)=>b._dG-a._dG).slice(0,100);
+    .filter(r=>r._dG!==null)
+    .sort((a,b)=>b._dG-a._dG)
+    .slice(0,100);
+
   document.getElementById('tbl-gest').innerHTML=rows1.length?rows1.map((r,i)=>`<tr>
     <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
     <td style="font-weight:700;color:var(--turquesa);max-width:160px;overflow:hidden;text-overflow:ellipsis;font-size:14px">${r[C.GESTOR]||'—'}</td>
@@ -977,8 +969,12 @@ function renderAlertas(){
     <td>${abSol(r._dS)}</td>
   </tr>`).join(''):`<tr><td colspan="10" class="empty">Sin registros con fecha de plan</td></tr>`;
 
-  const rows2=dd1.map(r=>({...r,_dS:diasDesde(r[C.FECHA_SOL]),_dG:diasDesde(r[C.FE_PLAN])}))
-    .filter(r=>r._dS!==null).sort((a,b)=>b._dS-a._dS).slice(0,100);
+  const rows2=filtered
+    .map(r=>({...r,_dS:diasDesde(r[C.FECHA_SOL]),_dG:diasDesde(r[C.FE_PLAN])}))
+    .filter(r=>r._dS!==null)
+    .sort((a,b)=>b._dS-a._dS)
+    .slice(0,100);
+
   document.getElementById('tbl-sol').innerHTML=rows2.length?rows2.map((r,i)=>`<tr>
     <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
     <td style="font-weight:700;color:var(--turquesa);max-width:160px;overflow:hidden;text-overflow:ellipsis;font-size:14px">${r[C.GESTOR]||'—'}</td>
@@ -995,17 +991,20 @@ function renderAlertas(){
 
 // ── CHARTS ─────────────────────────────────────────────────────────────
 function mkChart(id,cfg){if(charts[id])charts[id].destroy();const c=document.getElementById(id);if(!c)return;charts[id]=new Chart(c,cfg);}
+
 function hBar(id,entries,color){
   mkChart(id,{type:'bar',
     data:{labels:entries.map(([k])=>k.length>22?k.slice(0,20)+'…':k),datasets:[{data:entries.map(([,v])=>v),backgroundColor:color+'bb',borderColor:color,borderWidth:1,borderRadius:4}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},
       scales:{x:{grid:{color:GC},ticks:TST},y:{grid:{color:'transparent'},ticks:{...TST,color:'#9BBCD8'}}}}});
 }
+
 function doughnut(id,entries,legId){
   const labels=entries.map(([k])=>k),vals=entries.map(([,v])=>v),cols=PALETTE.slice(0,entries.length),tot=vals.reduce((a,b)=>a+b,0);
   if(legId)document.getElementById(legId).innerHTML=labels.map((l,i)=>`<div class="leg-i"><span class="leg-sq" style="background:${cols[i]}"></span>${l.length>16?l.slice(0,14)+'…':l} · ${Math.round(vals[i]/tot*100)}%</div>`).join('');
   mkChart(id,{type:'doughnut',data:{labels,datasets:[{data:vals,backgroundColor:cols.map(c=>c+'bb'),borderColor:cols,borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});
 }
+
 function renderTend(){
   const dates=KNOWN_SHEETS.map(s=>s.fecha).filter(d=>sheetStats[d]);
   mkChart('ch-tend',{type:'line',data:{labels:dates,datasets:[
@@ -1017,21 +1016,31 @@ function renderTend(){
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
     scales:{x:{grid:{color:GC},ticks:{...TST,maxRotation:45,autoSkip:false}},y:{grid:{color:GC},ticks:TST}}}});
 }
+
+// Sin deduplicación: cada fila del Sheets cuenta en el resumen
 function renderResumen(){
-  const ddR = getDedupData(filtered);
   const map={};
-  ddR.forEach(r=>{
+  filtered.forEach(r=>{
     const g=r[C.GESTOR]||'Sin gestor';
     if(!map[g])map[g]={plan:0,det:0,rep:0,asig:0,cli:new Set(),fechas:[]};
-    if(esPlan(r))map[g].plan++;if(esDet(r))map[g].det++;if(esRep(r))map[g].rep++;if(esAsig(r))map[g].asig++;
+    if(esPlan(r))map[g].plan++;
+    if(esDet(r)) map[g].det++;
+    if(esRep(r)) map[g].rep++;
+    if(esAsig(r))map[g].asig++;
     if(r[C.CLIENTE])map[g].cli.add(r[C.CLIENTE]);
     if(r[C.FE_PLAN])map[g].fechas.push(r[C.FE_PLAN]);
   });
-  const rows=Object.entries(map).sort((a,b)=>{const ta=a[1].plan+a[1].det+a[1].rep+a[1].asig,tb=b[1].plan+b[1].det+b[1].rep+b[1].asig;return tb-ta;});
+  const rows=Object.entries(map).sort((a,b)=>{
+    const ta=a[1].plan+a[1].det+a[1].rep+a[1].asig;
+    const tb=b[1].plan+b[1].det+b[1].rep+b[1].asig;
+    return tb-ta;
+  });
   const maxT=rows[0]?rows[0][1].plan+rows[0][1].det+rows[0][1].rep+rows[0][1].asig:1;
   document.getElementById('tbl-count').textContent=rows.length+' GESTORES';
   document.getElementById('tbl-resumen').innerHTML=rows.length?rows.map(([g,d],i)=>{
-    const tot=d.plan+d.det+d.rep+d.asig,bw=Math.round(tot/maxT*70),ult=d.fechas.sort().pop()||'—';
+    const tot=d.plan+d.det+d.rep+d.asig;
+    const bw=Math.round(tot/maxT*70);
+    const ult=d.fechas.sort().pop()||'—';
     return`<tr>
       <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
       <td style="font-weight:700;color:var(--turquesa);font-family:var(--font-cond)">${g}</td>
@@ -1046,71 +1055,65 @@ function renderResumen(){
   }).join(''):`<tr><td colspan="10" class="empty">Sin datos</td></tr>`;
 }
 
-
 // ── GRÁFICO TOP GESTORES + DETALLE ────────────────────────────────────
-let _gestorSeleccionado = null;
-let _detalleEstadoFil   = 'all';
-let _gestorMapCache     = {};
+let _gestorSeleccionado=null;
+let _detalleEstadoFil='all';
+let _gestorMapCache={};
 
+// Sin deduplicación: el gráfico refleja exactamente los registros de filtered
 function renderTopGestores(){
-  // Dedup central: un login = el registro del corte más reciente
-  const dedupTop = getDedupData(filtered).filter(tieneCarga);
-
-  const map = {};
-  dedupTop.forEach(r => {
-    const g = r[C.GESTOR] || 'Sin gestor';
-    if(!map[g]) map[g] = {plan:0, det:0, rep:0, asig:0, rows:[]};
+  const map={};
+  filtered.filter(tieneCarga).forEach(r=>{
+    const g=r[C.GESTOR]||'Sin gestor';
+    if(!map[g])map[g]={plan:0,det:0,rep:0,asig:0,rows:[]};
     if(esPlan(r))  map[g].plan++;
     if(esDet(r))   map[g].det++;
     if(esRep(r))   map[g].rep++;
     if(esAsig(r))  map[g].asig++;
     map[g].rows.push(r);
   });
-  _gestorMapCache = map;
+  _gestorMapCache=map;
 
-  const sorted = Object.entries(map)
-    .map(([g,d]) => ({g, tot:d.plan+d.det+d.rep+d.asig, ...d}))
-    .sort((a,b) => b.tot - a.tot)
-    .slice(0, 20);
+  const sorted=Object.entries(map)
+    .map(([g,d])=>({g,tot:d.plan+d.det+d.rep+d.asig,...d}))
+    .sort((a,b)=>b.tot-a.tot)
+    .slice(0,20);
 
-  const labels    = sorted.map(d => d.g.length>30 ? d.g.slice(0,28)+'…' : d.g);
-  const fullLabels= sorted.map(d => d.g);
-  const barH      = Math.max(420, sorted.length * 36);
-  const canvas    = document.getElementById('ch-top-gestores');
-  if(!canvas) return;
-  canvas.parentElement.style.height = barH + 'px';
+  const labels   =sorted.map(d=>d.g.length>30?d.g.slice(0,28)+'…':d.g);
+  const fullLabels=sorted.map(d=>d.g);
+  const barH     =Math.max(420,sorted.length*36);
+  const canvas   =document.getElementById('ch-top-gestores');
+  if(!canvas)return;
+  canvas.parentElement.style.height=barH+'px';
 
-  if(charts['ch-top-gestores']) charts['ch-top-gestores'].destroy();
+  if(charts['ch-top-gestores'])charts['ch-top-gestores'].destroy();
 
-  // Plugin para etiquetas de valor DENTRO y al final de la barra
-  const labelPlugin = {
+  const labelPlugin={
     id:'barLabels',
     afterDatasetsDraw(chart){
-      const ctx = chart.ctx;
+      const ctx=chart.ctx;
       ctx.save();
-      chart.data.datasets.forEach((ds, di) => {
-        const meta = chart.getDatasetMeta(di);
-        const isLast = di === chart.data.datasets.length - 1;
-        meta.data.forEach((bar, bi) => {
-          const val = ds.data[bi];
-          if(!val) return;
-          const {x, y, width, height, base} = bar.getProps(['x','y','width','height','base'],true);
-          const segW = Math.abs(x - base);
-          // Valor dentro del segmento si hay espacio
-          if(segW > 22){
-            ctx.fillStyle = 'rgba(255,255,255,0.9)';
-            ctx.font = `600 10px 'Barlow Condensed', sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(val, base + segW/2, y + height/2);
+      chart.data.datasets.forEach((ds,di)=>{
+        const meta=chart.getDatasetMeta(di);
+        const isLast=di===chart.data.datasets.length-1;
+        meta.data.forEach((bar,bi)=>{
+          const val=ds.data[bi];
+          if(!val)return;
+          const {x,y,width,height,base}=bar.getProps(['x','y','width','height','base'],true);
+          const segW=Math.abs(x-base);
+          if(segW>22){
+            ctx.fillStyle='rgba(255,255,255,0.9)';
+            ctx.font=`600 10px 'Barlow Condensed', sans-serif`;
+            ctx.textAlign='center';
+            ctx.textBaseline='middle';
+            ctx.fillText(val,base+segW/2,y+height/2);
           }
-          // Total al final del último segmento
           if(isLast){
-            const tot = sorted[bi].tot;
-            ctx.fillStyle = '#e8f0ff';
-            ctx.font = `700 11px 'Barlow Condensed', sans-serif`;
-            ctx.textAlign = 'left';
-            ctx.fillText(tot, x + 5, y + height/2);
+            const tot=sorted[bi].tot;
+            ctx.fillStyle='#e8f0ff';
+            ctx.font=`700 11px 'Barlow Condensed', sans-serif`;
+            ctx.textAlign='left';
+            ctx.fillText(tot,x+5,y+height/2);
           }
         });
       });
@@ -1118,48 +1121,39 @@ function renderTopGestores(){
     }
   };
 
-  charts['ch-top-gestores'] = new Chart(canvas, {
-    type: 'bar',
-    plugins: [labelPlugin],
-    data: {
+  charts['ch-top-gestores']=new Chart(canvas,{
+    type:'bar',
+    plugins:[labelPlugin],
+    data:{
       labels,
-      datasets: [
-        {label:'Planificada',   data:sorted.map(d=>d.plan), backgroundColor:'rgba(0,176,240,.85)',   stack:'s', borderSkipped:false},
-        {label:'Detenido',      data:sorted.map(d=>d.det),  backgroundColor:'rgba(255,68,176,.85)',  stack:'s', borderSkipped:false},
-        {label:'Replanificada', data:sorted.map(d=>d.rep),  backgroundColor:'rgba(255,167,0,.85)',   stack:'s', borderSkipped:false},
-        {label:'AsignadoTarea', data:sorted.map(d=>d.asig), backgroundColor:'rgba(110,190,235,.85)', stack:'s', borderSkipped:false},
+      datasets:[
+        {label:'Planificada',   data:sorted.map(d=>d.plan), backgroundColor:'rgba(0,176,240,.85)',  stack:'s',borderSkipped:false},
+        {label:'Detenido',      data:sorted.map(d=>d.det),  backgroundColor:'rgba(255,68,176,.85)', stack:'s',borderSkipped:false},
+        {label:'Replanificada', data:sorted.map(d=>d.rep),  backgroundColor:'rgba(255,167,0,.85)',  stack:'s',borderSkipped:false},
+        {label:'AsignadoTarea', data:sorted.map(d=>d.asig), backgroundColor:'rgba(110,190,235,.85)',stack:'s',borderSkipped:false},
       ]
     },
-    options: {
-      responsive:true, maintainAspectRatio:false,
+    options:{
+      responsive:true,maintainAspectRatio:false,
       indexAxis:'y',
       layout:{padding:{right:50}},
       plugins:{
-        legend:{
-          display:true, position:'top',
-          labels:{color:'#9BBCD8',font:{size:11,family:"'Barlow Condensed',sans-serif"},boxWidth:12,padding:16}
-        },
+        legend:{display:true,position:'top',labels:{color:'#9BBCD8',font:{size:11,family:"'Barlow Condensed',sans-serif"},boxWidth:12,padding:16}},
         tooltip:{
           callbacks:{
-            title: ctx => {
-              const d = sorted[ctx[0].dataIndex];
-              return `${fullLabels[ctx[0].dataIndex]}  (Total: ${d.tot})`;
+            title:ctx=>{
+              const d=sorted[ctx[0].dataIndex];
+              return`${fullLabels[ctx[0].dataIndex]}  (Total: ${d.tot})`;
             },
-            label: ctx => {
-              return `  ${ctx.dataset.label}: ${ctx.parsed.x}`;
-            },
-            afterBody: ctx => {
-              const d = sorted[ctx[0].dataIndex];
-              const gestorRows = (d.rows||[]).filter(tieneCarga);
-              // Top 3 logins con su estado y FE ULT PLAN
-              const lines = ['', '── Top logins ──'];
-              gestorRows.slice(0,5).forEach(r => {
-                const login = r[C.LOGIN]||'—';
-                const fe    = fmtDate(r[C.FE_PLAN])||'—';
-                const est   = getEst(r)||'—';
-                lines.push(`  ${login}  |  ${fe}  |  ${est}`);
+            label:ctx=>`  ${ctx.dataset.label}: ${ctx.parsed.x}`,
+            afterBody:ctx=>{
+              const d=sorted[ctx[0].dataIndex];
+              const gestorRows=(d.rows||[]).filter(tieneCarga);
+              const lines=['','── Top logins ──'];
+              gestorRows.slice(0,5).forEach(r=>{
+                lines.push(`  ${r[C.LOGIN]||'—'}  |  ${fmtDate(r[C.FE_PLAN])||'—'}  |  ${getEst(r)||'—'}`);
               });
-              if(gestorRows.length > 5) lines.push(`  ... y ${gestorRows.length-5} más`);
+              if(gestorRows.length>5)lines.push(`  ... y ${gestorRows.length-5} más`);
               return lines;
             }
           },
@@ -1168,76 +1162,69 @@ function renderTopGestores(){
           borderWidth:1,
           titleFont:{family:"'Barlow Condensed',sans-serif",size:13,weight:'bold'},
           bodyFont:{family:"'Barlow Condensed',sans-serif",size:11},
-          padding:12,
-          boxPadding:4
+          padding:12,boxPadding:4
         }
       },
       scales:{
         x:{stacked:true,grid:{color:'rgba(0,176,240,.08)'},ticks:{color:'#9BBCD8',font:{size:10,family:"'Barlow Condensed',sans-serif"}}},
         y:{stacked:true,grid:{color:'transparent'},ticks:{color:'#9BBCD8',font:{size:10,family:"'Barlow Condensed',sans-serif"},callback:(v,i)=>labels[i]}}
       },
-      onClick(evt,elems){
-        if(!elems.length)return;
-        cargarDetalleGestor(fullLabels[elems[0].index]);
-      },
+      onClick(evt,elems){if(!elems.length)return;cargarDetalleGestor(fullLabels[elems[0].index]);},
       onHover(evt,elems){canvas.style.cursor=elems.length?'pointer':'default';}
     }
   });
 }
 
 function cargarDetalleGestor(nombre){
-  _gestorSeleccionado = nombre;
-  _detalleEstadoFil   = 'all';
-  const wrap = document.getElementById('detalle-gestor-wrap');
-  wrap.style.display = '';
-  document.getElementById('detalle-gestor-nombre').textContent = nombre;
-  // Scroll suave al detalle
-  setTimeout(() => wrap.scrollIntoView({behavior:'smooth', block:'start'}), 80);
+  _gestorSeleccionado=nombre;
+  _detalleEstadoFil='all';
+  const wrap=document.getElementById('detalle-gestor-wrap');
+  wrap.style.display='';
+  document.getElementById('detalle-gestor-nombre').textContent=nombre;
+  setTimeout(()=>wrap.scrollIntoView({behavior:'smooth',block:'start'}),80);
   renderDetalleTabla();
 }
 
+// Sin deduplicación: el detalle muestra TODAS las filas del gestor en filtered
 function renderDetalleTabla(){
-  const d = _gestorMapCache[_gestorSeleccionado];
-  if(!d){ document.getElementById('tbl-detalle-body').innerHTML='<tr><td colspan="16" class="empty">Sin datos</td></tr>'; return; }
+  const d=_gestorMapCache[_gestorSeleccionado];
+  if(!d){document.getElementById('tbl-detalle-body').innerHTML='<tr><td colspan="16" class="empty">Sin datos</td></tr>';return;}
 
-  // Botones de filtro por estado
-  const estados = ['all','Planificada','Detenido','Replanificada','AsignadoTarea'];
-  const counts  = {all: d.rows.filter(tieneCarga).length,
+  const estados=['all','Planificada','Detenido','Replanificada','AsignadoTarea'];
+  const counts={
+    all:         d.rows.filter(tieneCarga).length,
     Planificada: d.rows.filter(esPlan).length,
     Detenido:    d.rows.filter(esDet).length,
-    Replanificada: d.rows.filter(esRep).length,
-    AsignadoTarea: d.rows.filter(esAsig).length
+    Replanificada:d.rows.filter(esRep).length,
+    AsignadoTarea:d.rows.filter(esAsig).length
   };
-  const estCols = {Planificada:'#00B0F0', Detenido:'#FF44B0', Replanificada:'#FFA700', AsignadoTarea:'#6EBEEB'};
+  const estCols={Planificada:'#00B0F0',Detenido:'#FF44B0',Replanificada:'#FFA700',AsignadoTarea:'#6EBEEB'};
 
-  document.getElementById('detalle-estado-filtros').innerHTML =
-    estados.map(e => {
-      const isAll = e==='all';
-      const cls = (e===_detalleEstadoFil?'active':'');
-      const col = isAll ? '' : `color:${estCols[e]};border-color:${estCols[e]}40;background:${estCols[e]}18`;
-      const lbl = isAll ? 'Todos' : e;
-      return `<span class="estado-fil ${isAll?'ef-all':''} ${cls}" style="${col}" onclick="setDetalleEstado('${e}')">${lbl} <b>${counts[e]||0}</b></span>`;
-    }).join('');
+  document.getElementById('detalle-estado-filtros').innerHTML=estados.map(e=>{
+    const isAll=e==='all';
+    const cls=(e===_detalleEstadoFil?'active':'');
+    const col=isAll?'':`color:${estCols[e]};border-color:${estCols[e]}40;background:${estCols[e]}18`;
+    return`<span class="estado-fil ${isAll?'ef-all':''} ${cls}" style="${col}" onclick="setDetalleEstado('${e}')">${isAll?'Todos':e} <b>${counts[e]||0}</b></span>`;
+  }).join('');
 
-  // Filas filtradas
-  let rows = d.rows.filter(tieneCarga);
-  if(_detalleEstadoFil !== 'all') rows = rows.filter(r => getEst(r) === _detalleEstadoFil);
-  // Ordenar: por estado luego días sin gestión desc
+  let rows=d.rows.filter(tieneCarga);
+  if(_detalleEstadoFil!=='all')rows=rows.filter(r=>getEst(r)===_detalleEstadoFil);
+
   const estOrd={Planificada:0,Detenido:1,Replanificada:2,AsignadoTarea:3};
   rows.sort((a,b)=>{
     const eo=(estOrd[getEst(a)]??9)-(estOrd[getEst(b)]??9);
-    return eo!==0 ? eo : (diasDesde(b[C.FE_PLAN])||0)-(diasDesde(a[C.FE_PLAN])||0);
+    return eo!==0?eo:(diasDesde(b[C.FE_PLAN])||0)-(diasDesde(a[C.FE_PLAN])||0);
   });
 
-  document.getElementById('detalle-count').textContent =
+  document.getElementById('detalle-count').textContent=
     `${rows.length} ÓRDENES · GESTOR: ${_gestorSeleccionado.toUpperCase()}`;
 
-  document.getElementById('tbl-detalle-body').innerHTML = rows.length ?
-    rows.map((r,i) => {
-      const dG = diasDesde(r[C.FE_PLAN]);
-      const obs1 = (r[C.OBS_PLAN]||'—').slice(0,80) + (r[C.OBS_PLAN]&&r[C.OBS_PLAN].length>80?'…':'');
-      const obs2 = (r[C.OBS_REPLAN]||'—').slice(0,80) + (r[C.OBS_REPLAN]&&r[C.OBS_REPLAN].length>80?'…':'');
-      return `<tr>
+  document.getElementById('tbl-detalle-body').innerHTML=rows.length?
+    rows.map((r,i)=>{
+      const dG=diasDesde(r[C.FE_PLAN]);
+      const obs1=(r[C.OBS_PLAN]||'—').slice(0,80)+(r[C.OBS_PLAN]&&r[C.OBS_PLAN].length>80?'…':'');
+      const obs2=(r[C.OBS_REPLAN]||'—').slice(0,80)+(r[C.OBS_REPLAN]&&r[C.OBS_REPLAN].length>80?'…':'');
+      return`<tr>
         <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
         <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
         <td class="td-login">${r[C.LOGIN]||'—'}</td>
@@ -1255,68 +1242,69 @@ function renderDetalleTabla(){
         <td class="td-muted">${r[C.EMPRESA]||'—'}</td>
         <td class="td-muted">${r[C.VENDEDOR]||'—'}</td>
       </tr>`;
-    }).join('') :
+    }).join(''):
     '<tr><td colspan="16" class="empty">Sin órdenes para este filtro</td></tr>';
 }
 
 function setDetalleEstado(e){
-  _detalleEstadoFil = e;
+  _detalleEstadoFil=e;
   renderDetalleTabla();
 }
 
-// ── EXPORTAR EXCEL (CSV descargable) ──────────────────────────────────
+// ── EXPORTAR CSV ──────────────────────────────────────────────────────
 function exportarExcel(){
-  const d = _gestorMapCache[_gestorSeleccionado];
-  if(!d) return;
-  let rows = d.rows.filter(tieneCarga);
-  if(_detalleEstadoFil !== 'all') rows = rows.filter(r => getEst(r) === _detalleEstadoFil);
+  const d=_gestorMapCache[_gestorSeleccionado];
+  if(!d)return;
+  let rows=d.rows.filter(tieneCarga);
+  if(_detalleEstadoFil!=='all')rows=rows.filter(r=>getEst(r)===_detalleEstadoFil);
 
-  const headers = ['FECHA_SOLICITUD','NOMBRE_USR_ULT_PLAN','CLIENTE','LOGIN','ESTADO SERVICIO',
+  const headers=['FECHA_SOLICITUD','NOMBRE_USR_ULT_PLAN','CLIENTE','LOGIN','ESTADO SERVICIO',
     'PRODUCTO','TIPO ÓRDEN','TÉCNICA SUCURSAL','FE ULT PLAN','DIAS_SIN_GESTION',
-    'OBS_ULT_PLAN','MOTIVO','ULT_OBS_REPLANIFICADA','ESTADO_CONTRATO','TIPO_EMPRESA','VENDEDOR'];
-  const colKeys = [C.FECHA_SOL,C.GESTOR,C.CLIENTE,C.LOGIN,C.EST,
+    'OBS_ULT_PLAN','MOTIVO','ULT_OBS_REPLANIFICADA','ESTADO_CONTRATO','TIPO_EMPRESA','VENDEDOR','CORTE'];
+  const colKeys=[C.FECHA_SOL,C.GESTOR,C.CLIENTE,C.LOGIN,C.EST,
     C.PRODUCTO,C.TIPO_ORDEN,C.SUCURSAL,C.FE_PLAN,'_dias',
-    C.OBS_PLAN,C.MOTIVO,C.OBS_REPLAN,C.CONTRATO,C.EMPRESA,C.VENDEDOR];
+    C.OBS_PLAN,C.MOTIVO,C.OBS_REPLAN,C.CONTRATO,C.EMPRESA,C.VENDEDOR,'_fecha'];
 
-  const escape = v => '"'+(String(v||'').replace(/"/g,'""'))+'"';
-  const lines = [headers.map(escape).join(',')];
-  rows.forEach(r => {
-    const dG = diasDesde(r[C.FE_PLAN]);
-    const vals = colKeys.map(k => k==='_dias' ? (dG!==null?dG:'') : r[k]||'');
+  const escape=v=>'"'+(String(v||'').replace(/"/g,'""'))+'"';
+  const lines=[headers.map(escape).join(',')];
+  rows.forEach(r=>{
+    const dG=diasDesde(r[C.FE_PLAN]);
+    const vals=colKeys.map(k=>k==='_dias'?(dG!==null?dG:''):r[k]||'');
     lines.push(vals.map(escape).join(','));
   });
 
-  const bom = '﻿';
-  const blob = new Blob([bom+lines.join('\n')], {type:'text/csv;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  const nombre = (_gestorSeleccionado||'gestor').replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
-  a.download = `PEI_Pendientes_${nombre}_${new Date().toISOString().slice(0,10)}.csv`;
+  const bom='﻿';
+  const blob=new Blob([bom+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  const nombre=(_gestorSeleccionado||'gestor').replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
+  a.download=`PEI_Pendientes_${nombre}_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
 
 // ── RENDER ALL ──────────────────────────────────────────────────────────
 function renderAll(){
-  renderKPIs();renderGestores();renderAlertas();
+  renderKPIs();
+  renderGestores();
+  renderAlertas();
   renderTopGestores();
-  // Limpiar detalle al recargar datos
   document.getElementById('detalle-gestor-wrap').style.display='none';
   _gestorSeleccionado=null;
+  // Gráficos de análisis — sin deduplicación
   hBar('ch-gestores',topN(count(filtered.filter(tieneCarga),C.GESTOR),10),'#00B0F0');
   doughnut('ch-estado',topN(count(filtered,C.EST),8),'leg-estado');
   hBar('ch-motivo',topN(count(filtered,C.MOTIVO),10),'#FF6F42');
   doughnut('ch-empresa',topN(count(filtered,C.EMPRESA),8),'leg-empresa');
-  renderTend();renderResumen();
+  renderTend();
+  renderResumen();
 }
 
-// ── CARGA CSV ───────────────────────────────────────────────────────────
 // ── CARGA DE DATOS ─────────────────────────────────────────────────────
 function mostrarPanelConfig(){
-  // Si no hay Apps Script configurado, mostrar instrucciones en el dashboard
-  const grid = document.getElementById('gestores-grid');
-  if(grid) grid.innerHTML = `
+  const grid=document.getElementById('gestores-grid');
+  if(grid)grid.innerHTML=`
     <div style="background:rgba(255,167,0,.08);border:1.5px solid rgba(255,167,0,.3);border-radius:12px;padding:24px 28px;color:#e8f0ff">
       <div style="font-family:var(--font-cond);font-size:16px;font-weight:700;color:#FFA700;letter-spacing:1px;margin-bottom:12px">
         ⚙ Configuración requerida · Google Workspace
@@ -1327,96 +1315,112 @@ function mostrarPanelConfig(){
       </p>
       <ol style="font-size:12px;color:#9BBCD8;line-height:2;padding-left:20px">
         <li>Ve a <a href="https://script.google.com" target="_blank" style="color:#00B0F0">script.google.com</a> con tu cuenta corporativa</li>
-        <li>Crea un nuevo proyecto y pega el código del archivo <code style="color:#FFA700">apps_script_proxy.gs</code></li>
+        <li>Crea un nuevo proyecto y pega el código del proxy</li>
         <li>Clic en <strong style="color:#fff">Implementar → Nueva implementación</strong></li>
         <li>Tipo: <strong style="color:#fff">Aplicación web</strong> | Ejecutar como: <strong style="color:#fff">Yo</strong> | Acceso: <strong style="color:#fff">Cualquier persona</strong></li>
-        <li>Copia la URL generada (empieza con <code style="color:#00B0F0">https://script.google.com/macros/s/...</code>)</li>
-        <li>En el <code style="color:#FFA700">index.html</code>, busca <code style="color:#fff">const APPS_SCRIPT_URL = ''</code> y pega la URL</li>
-        <li>Sube el index.html actualizado a GitHub</li>
+        <li>Copia la URL generada y pégala en <code style="color:#FFA700">const APPS_SCRIPT_URL</code></li>
       </ol>
     </div>`;
-  setStatus('⚙ Configura el Apps Script proxy para cargar datos del Sheets corporativo','error','Ver instrucciones arriba');
+  setStatus('⚙ Configura el Apps Script proxy','error','Ver instrucciones arriba');
 }
 
 async function fetchSheet(s){
-  if(!APPS_SCRIPT_URL) throw new Error('Sin configurar');
-  const url = appsScriptUrl(s.gid);
-  // Timeout de 55 segundos por hoja (Apps Script tiene límite de 30s de ejecución)
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 55000);
-  try {
-    const r = await fetch(url, {cache:'no-cache', redirect:'follow', signal: controller.signal});
+  if(!APPS_SCRIPT_URL)throw new Error('Sin configurar');
+  const url=appsScriptUrl(s.gid);
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),55000);
+  try{
+    const r=await fetch(url,{cache:'no-cache',redirect:'follow',signal:controller.signal});
     clearTimeout(timer);
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const txt = await r.text();
-    if(!txt || txt.trim().length < 10) throw new Error('Vacío');
-    if(txt.startsWith('Error:')) throw new Error(txt.slice(0,80));
-    return parseCSV(txt).map(row=>({...row, _fecha:s.fecha, _gid:s.gid}));
-  } catch(err) {
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const txt=await r.text();
+    if(!txt||txt.trim().length<10)throw new Error('Vacío');
+    if(txt.startsWith('Error:'))throw new Error(txt.slice(0,80));
+    // Parsear CSV y marcar cada fila con su hoja de origen
+    return parseCSV(txt).map(row=>({...row,_fecha:s.fecha,_gid:s.gid}));
+  }catch(err){
     clearTimeout(timer);
-    if(err.name === 'AbortError') throw new Error('Timeout (>55s)');
+    if(err.name==='AbortError')throw new Error('Timeout (>55s)');
     throw err;
   }
 }
 
-// ── RENDER ALL ──────────────────────────────────────────────────────────
-function renderAll(){
-  renderKPIs();renderGestores();renderAlertas();
-  renderTopGestores();
-  // Limpiar detalle al recargar datos
-  document.getElementById('detalle-gestor-wrap').style.display='none';
-  _gestorSeleccionado=null;
-  hBar('ch-gestores',topN(count(filtered.filter(tieneCarga),C.GESTOR),10),'#00B0F0');
-  doughnut('ch-estado',topN(count(filtered,C.EST),8),'leg-estado');
-  hBar('ch-motivo',topN(count(filtered,C.MOTIVO),10),'#FF6F42');
-  doughnut('ch-empresa',topN(count(filtered,C.EMPRESA),8),'leg-empresa');
-  renderTend();renderResumen();
-}
 async function loadAll(){
+  // Reiniciar estado global — sin datos residuales
   allData=[];sheetStats={};
-  // Verificar configuración
+
   if(!APPS_SCRIPT_URL){
     mostrarPanelConfig();
     return;
   }
+
   setStatus('Cargando hojas desde Apps Script...','loading');
-  document.getElementById('prog-wrap').style.display='block';setProgress(0,KNOWN_SHEETS.length);
+  document.getElementById('prog-wrap').style.display='block';
+  setProgress(0,KNOWN_SHEETS.length);
+
   let ok=0,err=0;
   const res=await Promise.allSettled(KNOWN_SHEETS.map(s=>fetchSheet(s)));
+
   res.forEach((r,i)=>{
     const s=KNOWN_SHEETS[i];
     if(r.status==='fulfilled'){
-      const rows=r.value;allData.push(...rows);
-      sheetStats[s.fecha]={total:rows.length,plan:rows.filter(esPlan).length,det:rows.filter(esDet).length,rep:rows.filter(esRep).length,asig:rows.filter(esAsig).length,pre:rows.filter(esPre).length};
+      const rows=r.value;
+      allData.push(...rows);
+      // sheetStats guarda métricas por fecha de corte para el gráfico de tendencia
+      sheetStats[s.fecha]={
+        total:rows.length,
+        plan: rows.filter(esPlan).length,
+        det:  rows.filter(esDet).length,
+        rep:  rows.filter(esRep).length,
+        asig: rows.filter(esAsig).length,
+        pre:  rows.filter(esPre).length
+      };
       ok++;
-    }else{err++;console.warn('Error',s.fecha,r.reason);}
+    }else{
+      err++;
+      console.warn('Error hoja',s.fecha,r.reason);
+    }
     setProgress(ok+err,KNOWN_SHEETS.length);
     document.getElementById('st-detail').textContent=`${ok}/${KNOWN_SHEETS.length} hojas`;
   });
+
+  // Poblar filtros con los valores únicos del dataset completo
   populateSel('sf-gestor', allData.map(r=>r[C.GESTOR]));
-  // Solo estados válidos — excluye valores basura del Sheets
-  const ESTADOS_OK = ['Planificada','Detenido','Replanificada','AsignadoTarea','PrePlanificada'];
+  const ESTADOS_OK=['Planificada','Detenido','Replanificada','AsignadoTarea','PrePlanificada'];
   populateSel('sf-estado', allData.map(r=>getEst(r)).filter(v=>ESTADOS_OK.includes(v)));
-  populateSel('sf-empresa', allData.map(r=>r[C.EMPRESA]));
-  populateSel('sf-enlace',  allData.map(r=>r[C.ENLACE]));
-  populateSel('sf-fecha',   allData.map(r=>r._fecha));
-  populateSel('sf-login',   allData.map(r=>r[C.LOGIN]));
-  filtered=[...allData];renderAll();
+  populateSel('sf-empresa',allData.map(r=>r[C.EMPRESA]));
+  populateSel('sf-enlace', allData.map(r=>r[C.ENLACE]));
+  populateSel('sf-fecha',  allData.map(r=>r._fecha));
+  populateSel('sf-login',  allData.map(r=>r[C.LOGIN]));
+
+  // filtered inicia igual a allData
+  filtered=[...allData];
+  renderAll();
+
   const now=new Date();
   const horaFmt=now.toLocaleTimeString('es-EC',{hour:'2-digit',minute:'2-digit'});
   const fechaFmt=now.toLocaleDateString('es-EC',{day:'2-digit',month:'short',year:'numeric'});
-  // Badge Google Sheets
+
   const badge=document.getElementById('gs-badge');
   badge.style.display='inline-flex';
-  badge.innerHTML='<span class="gs-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Google Sheets &nbsp;&middot;&nbsp; <span class="gs-hora">'+horaFmt+'</span></span>';
-  document.getElementById('footer-txt').textContent=`PEI Proyectos e Implementación · PEI PENDIENTES · ${allData.length.toLocaleString('es-EC')} registros · ${ok} hojas · ${fechaFmt} ${horaFmt}`;
+  badge.innerHTML='<span class="gs-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Google Sheets &nbsp;·&nbsp; <span class="gs-hora">'+horaFmt+'</span></span>';
+
+  document.getElementById('footer-txt').textContent=
+    `PEI Proyectos e Implementación · PEI PENDIENTES · ${allData.length.toLocaleString('es-EC')} registros · ${ok} hojas · ${fechaFmt} ${horaFmt}`;
+
   if(allData.length===0){
-    setStatus(`⚠ Sin datos: ${err} hojas fallaron. El Sheets puede ser corporativo. Configura el Apps Script proxy.`,'error','Ver instrucciones');
-  } else {
-    setStatus(err===0?`${ok} hojas cargadas · ${allData.length.toLocaleString('es-EC')} registros`:`${ok} OK · ${err} con error`,err===KNOWN_SHEETS.length?'error':'ok',fechaFmt);
+    setStatus(`⚠ Sin datos: ${err} hojas fallaron`,'error','Revisa la configuración del Apps Script');
+  }else{
+    setStatus(
+      err===0?`${ok} hojas cargadas · ${allData.length.toLocaleString('es-EC')} registros`:`${ok} OK · ${err} con error`,
+      err===KNOWN_SHEETS.length?'error':'ok',
+      fechaFmt
+    );
   }
   setProgress(0,0);
 }
+
+// ── INICIO ─────────────────────────────────────────────────────────────
 initFilters();
 loadAll();
 </script>
