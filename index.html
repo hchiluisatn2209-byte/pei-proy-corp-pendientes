@@ -1438,7 +1438,9 @@ async function loadAll(){
     const s=KNOWN_SHEETS[i];
     if(r.status==='fulfilled'){
       const rows=r.value;
-      const pendientes=rows.filter(r=>tieneCarga(r)||esPre(r));
+      // Filtrar solo estados pendientes usando C.EST (ya definido en scope global)
+      const PEND_EST=new Set(['Planificada','Detenido','Replanificada','AsignadoTarea','PrePlanificada']);
+      const pendientes=rows.filter(row=>PEND_EST.has(getEst(row)));
       allData.push(...pendientes);
       sheetStats[s.fecha]={
         total:pendientes.length,
@@ -1498,7 +1500,7 @@ async function loadAll(){
       const st = sheetStats[s.fecha];
       return st ? `${s.fecha}:${st.total}` : `${s.fecha}:ERR`;
     }).join(' | ');
-    dbgInfo.textContent = `Total allData=${allData.length} | dedup=${allDataDedup.length} | ` + perHoja;
+    dbgInfo.textContent = `Total allData=${allData.length} | ` + perHoja;
     dbgPanel.style.display = 'block';
   }
 
