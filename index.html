@@ -444,7 +444,7 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
 <script>
 // ── CONFIG ──────────────────────────────────────────────────────────────
 const SHEET_ID = '1e0LPzPCBzAuO7HXpYAYSo7ogXQg0rau5-CFrGUfyzaE';
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz2YNt7CAtGUa3HxM0OzB7OmN3wqqKO5kl9syqJ-R1CLQ17rOGBTOKYRh7A0KBJYhAv/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbznG_ihaBy4MYhDnZ2dgbnz6BHutbjR5Im8Qa9UexsE1HiKdqIpACh6USBOvc-n6LjE/exec';
 
 // ── CÓMO AGREGAR UNA NUEVA HOJA ────────────────────────────────────────
 // 1. Abre el Google Sheets y haz clic en la pestaña de la nueva hoja
@@ -785,29 +785,7 @@ function applyFilters(){
   // Panel diagnóstico: muestra valores reales de campos clave
   const dbgInfo=document.getElementById('debug-info');
   if(dbgInfo){
-    const gestorKey=C.GESTOR;
-    const estKey=C.EST;
-    // Contar registros de Romina en allData para diagnóstico
-    const rominaAll=allData.filter(r=>(r[gestorKey]||'').includes('ROMINA'));
-    const rominaFiltered=filtered.filter(r=>(r[gestorKey]||'').includes('ROMINA'));
-    const rominaEn2105=allData.filter(r=>(r[gestorKey]||'').includes('ROMINA')&&r._fecha==='21-05-26');
-    // Muestra keys reales de la primera fila para detectar mismatch de columnas
-    const fila0=allData[0]||{};
-    const keysGestor=Object.keys(fila0).filter(k=>k.includes('NOMBRE')||k.includes('USR')||k.includes('PLAN'));
-    const keysEst=Object.keys(fila0).filter(k=>k.includes('ESTADO')||k.includes('SERV'));
-    // Muestra cuántos registros tiene cada gestor en el corte más reciente
-    const ultimaFecha=KNOWN_SHEETS[KNOWN_SHEETS.length-1].fecha;
-    const hoyRows=allData.filter(r=>r._fecha===ultimaFecha);
-    const gestoresHoy=[...new Set(hoyRows.map(r=>r[gestorKey]||'?'))].length;
-    const fila0=allData.find(r=>r._fecha===ultimaFecha)||allData[0]||{};
-    const keysGestor=Object.keys(fila0).filter(k=>k.toUpperCase().includes('NOMBRE')||k.toUpperCase().includes('USR'));
-    const keysEst=Object.keys(fila0).filter(k=>k.toUpperCase().includes('ESTADO'));
-    dbgInfo.innerHTML=
-      `allData=${allData.length} | filtered=${filtered.length}<br>`
-      +`Corte más reciente (${ultimaFecha}): ${hoyRows.length} filas | ${gestoresHoy} gestores<br>`
-      +`C.GESTOR="${gestorKey}" → columnas reales: [${keysGestor.join(', ')}]<br>`
-      +`C.EST="${estKey}" → columnas reales: [${keysEst.join(', ')}]<br>`
-      +`Valor gestor en fila del corte actual: "${fila0[gestorKey]||'NO ENCONTRADO'}"`;
+    dbgInfo.innerHTML=`allData=${allData.length} | filtered=${filtered.length}`;
     document.getElementById('debug-panel').style.display='block';
   }
 
@@ -825,13 +803,6 @@ function clearFilters(){
 // ── KPIs ───────────────────────────────────────────────────────────────
 // Sin deduplicación: los KPIs reflejan exactamente los registros en filtered
 function renderKPIs(){
-  // DEBUG: mostrar valores reales de campos clave en consola
-  if(filtered.length>0 && filtered.length<=20){
-    console.log('DEBUG filtered sample:',filtered.slice(0,3).map(r=>({
-      gestor:r[C.GESTOR], est:r[C.EST], estRaw:r['ESTADO SERVICIO'],
-      keys:Object.keys(r).filter(k=>k.includes('ESTADO')||k.includes('NOMBRE'))
-    })));
-  }
   const n    =filtered.length;
   const gest =new Set(filtered.filter(tieneCarga).map(r=>r[C.GESTOR]).filter(Boolean)).size;
   const plan =filtered.filter(esPlan).length;
@@ -1394,7 +1365,6 @@ async function fetchSheetPage(gid, fecha, page) {
     const metaLine = txt.split('\n').find(l => l.startsWith('__META__'));
     const hasMore = metaLine ? metaLine.split(',')[2] === '1' : false;
     const rows = parseCSV(txt).map(row => ({...row, _fecha:fecha, _gid:gid}));
-    console.log(`[FETCH] gid=${gid} fecha=${fecha} page=${page} rows=${rows.length} hasMore=${hasMore} meta=${metaLine||'NONE'}`);
     return {rows, hasMore};
   } catch(err) {
     clearTimeout(timer);
