@@ -770,8 +770,7 @@ function applyFilters(){
   const lg=sfGetVals('sf-login');
   const f =sfGetVals('sf-fecha');
 
-  // Paso 1: filtrar por todos los criterios
-  let base=allData.filter(r=>
+  filtered=allData.filter(r=>
     (!g  || g.has(r[C.GESTOR]))&&
     (!e  || e.has(getEst(r)))&&
     (!t  || t.has(r[C.EMPRESA]))&&
@@ -779,26 +778,6 @@ function applyFilters(){
     (!lg || lg.has(r[C.LOGIN]))&&
     (!f  || f.has(r._fecha))
   );
-
-  // Paso 2: si NO hay filtro de corte activo, deduplicar por LOGIN
-  // conservando solo el registro del corte más reciente para cada LOGIN.
-  // Así una orden que aparece en 5 cortes cuenta como 1, no como 5.
-  if(!f){
-    const map=new Map();
-    base.forEach(r=>{
-      const key=(r[C.LOGIN]||r[C.ID_SERV]||'').trim();
-      if(!key){filtered.push&&null;return;}// sin clave: incluir siempre
-      const prev=map.get(key);
-      // Preferir el corte más reciente (fecha lexicográfica DD-MM-YY → comparar YY-MM-DD)
-      if(!prev||r._fecha>prev._fecha) map.set(key,r);
-    });
-    // Incluir filas sin LOGIN/ID_SERV tal cual
-    const sinKey=base.filter(r=>!(r[C.LOGIN]||r[C.ID_SERV]||'').trim());
-    filtered=[...map.values(),...sinKey];
-  } else {
-    // Con filtro de corte: mostrar todos los registros de esa hoja sin deduplicar
-    filtered=base;
-  }
 
   const notaCorte=document.getElementById('nota-corte');
   if(notaCorte)notaCorte.style.display=(f!==null)?'':'none';
@@ -816,12 +795,19 @@ function applyFilters(){
     const fila0=allData[0]||{};
     const keysGestor=Object.keys(fila0).filter(k=>k.includes('NOMBRE')||k.includes('USR')||k.includes('PLAN'));
     const keysEst=Object.keys(fila0).filter(k=>k.includes('ESTADO')||k.includes('SERV'));
+    // Muestra cuántos registros tiene cada gestor en el corte más reciente
+    const ultimaFecha=KNOWN_SHEETS[KNOWN_SHEETS.length-1].fecha;
+    const hoyRows=allData.filter(r=>r._fecha===ultimaFecha);
+    const gestoresHoy=[...new Set(hoyRows.map(r=>r[gestorKey]||'?'))].length;
+    const fila0=allData.find(r=>r._fecha===ultimaFecha)||allData[0]||{};
+    const keysGestor=Object.keys(fila0).filter(k=>k.toUpperCase().includes('NOMBRE')||k.toUpperCase().includes('USR'));
+    const keysEst=Object.keys(fila0).filter(k=>k.toUpperCase().includes('ESTADO'));
     dbgInfo.innerHTML=
       `allData=${allData.length} | filtered=${filtered.length}<br>`
-      +`Romina en allData=${rominaAll.length} | en filtered=${rominaFiltered.length} | en corte 21-05-26=${rominaEn2105.length}<br>`
-      +`C.GESTOR="${gestorKey}" → keys reales con NOMBRE/USR/PLAN: [${keysGestor.join(', ')}]<br>`
-      +`C.EST="${estKey}" → keys reales con ESTADO/SERV: [${keysEst.join(', ')}]<br>`
-      +`Valor gestor fila[0]: "${fila0[gestorKey]||'NO ENCONTRADO'}"`;
+      +`Corte más reciente (${ultimaFecha}): ${hoyRows.length} filas | ${gestoresHoy} gestores<br>`
+      +`C.GESTOR="${gestorKey}" → columnas reales: [${keysGestor.join(', ')}]<br>`
+      +`C.EST="${estKey}" → columnas reales: [${keysEst.join(', ')}]<br>`
+      +`Valor gestor en fila del corte actual: "${fila0[gestorKey]||'NO ENCONTRADO'}"`;
     document.getElementById('debug-panel').style.display='block';
   }
 
@@ -830,16 +816,7 @@ function applyFilters(){
 
 function clearFilters(){
   Object.keys(SF).forEach(id=>{if(SF[id]){SF[id].selected.clear();sfRenderChips(id);sfRenderList(id,'');}});
-  // Sin filtro de corte: deduplicar por LOGIN, conservando solo el corte más reciente
-  const _clrMap=new Map();
-  allData.forEach(r=>{
-    const key=(r[C.LOGIN]||r[C.ID_SERV]||'').trim();
-    if(!key)return;
-    const prev=_clrMap.get(key);
-    if(!prev||r._fecha>prev._fecha)_clrMap.set(key,r);
-  });
-  const _clrSin=allData.filter(r=>!(r[C.LOGIN]||r[C.ID_SERV]||'').trim());
-  filtered=[..._clrMap.values(),..._clrSin];
+  filtered=[...allData];
   const notaCorte=document.getElementById('nota-corte');
   if(notaCorte)notaCorte.style.display='none';
   renderAll();
@@ -1461,15 +1438,15 @@ async function loadAll(){
     const s=KNOWN_SHEETS[i];
     if(r.status==='fulfilled'){
       const rows=r.value;
-      allData.push(...rows);
-      // sheetStats guarda métricas por fecha de corte para el gráfico de tendencia
+      const pendientes=rows.filter(r=>tieneCarga(r)||esPre(r));
+      allData.push(...pendientes);
       sheetStats[s.fecha]={
-        total:rows.length,
-        plan: rows.filter(esPlan).length,
-        det:  rows.filter(esDet).length,
-        rep:  rows.filter(esRep).length,
-        asig: rows.filter(esAsig).length,
-        pre:  rows.filter(esPre).length
+        total:pendientes.length,
+        plan: pendientes.filter(esPlan).length,
+        det:  pendientes.filter(esDet).length,
+        rep:  pendientes.filter(esRep).length,
+        asig: pendientes.filter(esAsig).length,
+        pre:  pendientes.filter(esPre).length
       };
       ok++;
     }else{
@@ -1489,17 +1466,7 @@ async function loadAll(){
   populateSel('sf-fecha',  allData.map(r=>r._fecha));
   populateSel('sf-login',  allData.map(r=>r[C.LOGIN]));
 
-  // filtered inicia deduplicado por LOGIN (sin filtro de corte activo)
-  // conserva solo el registro más reciente de cada LOGIN
-  const _initMap=new Map();
-  allData.forEach(r=>{
-    const key=(r[C.LOGIN]||r[C.ID_SERV]||'').trim();
-    if(!key)return;
-    const prev=_initMap.get(key);
-    if(!prev||r._fecha>prev._fecha)_initMap.set(key,r);
-  });
-  const _sinKey=allData.filter(r=>!(r[C.LOGIN]||r[C.ID_SERV]||'').trim());
-  filtered=[..._initMap.values(),..._sinKey];
+  filtered=[...allData];
   renderAll();
 
   const now=new Date();
@@ -1531,7 +1498,7 @@ async function loadAll(){
       const st = sheetStats[s.fecha];
       return st ? `${s.fecha}:${st.total}` : `${s.fecha}:ERR`;
     }).join(' | ');
-    dbgInfo.textContent = `Total allData=${allData.length} | ` + perHoja;
+    dbgInfo.textContent = `Total allData=${allData.length} | dedup=${allDataDedup.length} | ` + perHoja;
     dbgPanel.style.display = 'block';
   }
 
