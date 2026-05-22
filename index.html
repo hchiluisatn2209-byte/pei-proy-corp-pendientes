@@ -517,12 +517,14 @@ function parseCSV(txt){
   const lines=txt.split('\n').filter(l=>l.trim());
   if(lines.length<2)return[];
   const h=parseLine(lines[0]);
-  return lines.slice(1).map(l=>{
-    const v=parseLine(l);
-    const o={};
-    h.forEach((k,i)=>{o[k.trim()]=(v[i]||'').trim();});
-    return o;
-  }).filter(r=>Object.values(r).some(v=>v));
+  return lines.slice(1)
+    .filter(l=>!l.startsWith('__META__')&&!l.startsWith('__TOTAL__'))
+    .map(l=>{
+      const v=parseLine(l);
+      const o={};
+      h.forEach((k,i)=>{o[k.trim()]=(v[i]||'').trim();});
+      return o;
+    }).filter(r=>Object.values(r).some(v=>v));
 }
 
 function parseDate(s){
@@ -1324,26 +1326,45 @@ function mostrarPanelConfig(){
   setStatus('⚙ Configura el Apps Script proxy','error','Ver instrucciones arriba');
 }
 
-async function fetchSheet(s){
-  if(!APPS_SCRIPT_URL)throw new Error('Sin configurar');
-  const url=appsScriptUrl(s.gid);
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),55000);
-  try{
-    const r=await fetch(url,{cache:'no-cache',redirect:'follow',signal:controller.signal});
+// PAGE_SIZE: filas por petición. Hojas grandes se cargan en múltiples peticiones automáticamente.
+const PAGE_SIZE = 2000;
+
+async function fetchSheetPage(gid, fecha, page) {
+  const url = `${APPS_SCRIPT_URL}?gid=${gid}&page=${page}&pageSize=${PAGE_SIZE}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60000);
+  try {
+    const r = await fetch(url, {cache:'no-cache', redirect:'follow', signal:controller.signal});
     clearTimeout(timer);
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    const txt=await r.text();
-    if(!txt||txt.trim().length<10)throw new Error('Vacío');
-    if(txt.startsWith('Error:'))throw new Error(txt.slice(0,80));
-    // Parsear CSV y marcar cada fila con su hoja de origen
-    return parseCSV(txt).map(row=>({...row,_fecha:s.fecha,_gid:s.gid}));
-  }catch(err){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const txt = await r.text();
+    if(!txt || txt.trim().length < 10) return {rows:[], hasMore:false};
+    if(txt.startsWith('Error:') || txt.startsWith('{"error"')) throw new Error(txt.slice(0,120));
+    const metaLine = txt.split('\n').find(l => l.startsWith('__META__'));
+    const hasMore = metaLine ? metaLine.split(',')[2] === '1' : false;
+    const rows = parseCSV(txt).map(row => ({...row, _fecha:fecha, _gid:gid}));
+    return {rows, hasMore};
+  } catch(err) {
     clearTimeout(timer);
-    if(err.name==='AbortError')throw new Error('Timeout (>55s)');
+    if(err.name === 'AbortError') throw new Error('Timeout pag.'+page);
     throw err;
   }
 }
+
+async function fetchSheet(s){
+  if(!APPS_SCRIPT_URL) throw new Error('Sin configurar');
+  const allRows = [];
+  let page = 0, hasMore = true;
+  while(hasMore) {
+    const res = await fetchSheetPage(s.gid, s.fecha, page);
+    allRows.push(...res.rows);
+    hasMore = res.hasMore;
+    page++;
+    if(page > 20) break; // máx 40.000 filas por hoja
+  }
+  return allRows;
+}
+
 
 async function loadAll(){
   // Reiniciar estado global — sin datos residuales
