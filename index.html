@@ -444,7 +444,7 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
 <script>
 // ── CONFIG ──────────────────────────────────────────────────────────────
 const SHEET_ID = '1e0LPzPCBzAuO7HXpYAYSo7ogXQg0rau5-CFrGUfyzaE';
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbznG_ihaBy4MYhDnZ2dgbnz6BHutbjR5Im8Qa9UexsE1HiKdqIpACh6USBOvc-n6LjE/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz2YNt7CAtGUa3HxM0OzB7OmN3wqqKO5kl9syqJ-R1CLQ17rOGBTOKYRh7A0KBJYhAv/exec';
 
 // ── CÓMO AGREGAR UNA NUEVA HOJA ────────────────────────────────────────
 // 1. Abre el Google Sheets y haz clic en la pestaña de la nueva hoja
@@ -1438,17 +1438,14 @@ async function loadAll(){
     const s=KNOWN_SHEETS[i];
     if(r.status==='fulfilled'){
       const rows=r.value;
-      // Filtrar solo estados pendientes usando C.EST (ya definido en scope global)
-      const PEND_EST=new Set(['Planificada','Detenido','Replanificada','AsignadoTarea','PrePlanificada']);
-      const pendientes=rows.filter(row=>PEND_EST.has(getEst(row)));
-      allData.push(...pendientes);
+      allData.push(...rows);
       sheetStats[s.fecha]={
-        total:pendientes.length,
-        plan: pendientes.filter(esPlan).length,
-        det:  pendientes.filter(esDet).length,
-        rep:  pendientes.filter(esRep).length,
-        asig: pendientes.filter(esAsig).length,
-        pre:  pendientes.filter(esPre).length
+        total:rows.length,
+        plan: rows.filter(esPlan).length,
+        det:  rows.filter(esDet).length,
+        rep:  rows.filter(esRep).length,
+        asig: rows.filter(esAsig).length,
+        pre:  rows.filter(esPre).length
       };
       ok++;
     }else{
