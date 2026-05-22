@@ -243,6 +243,12 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
   <span id="gs-badge" style="display:none;margin-left:auto"></span>
 </div>
 
+<!-- DEBUG PANEL - quitar después de verificar -->
+<div id="debug-panel" style="background:rgba(255,100,0,.12);border:1px solid rgba(255,100,0,.4);padding:8px 36px;font-size:11px;color:#FF9A44;font-family:monospace;display:none">
+  <strong>🔍 DEBUG:</strong> <span id="debug-info">—</span>
+  <button onclick="document.getElementById('debug-panel').style.display='none'" style="margin-left:12px;background:none;border:1px solid rgba(255,100,0,.4);color:#FF9A44;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:10px">✕</button>
+</div>
+
 <!-- FILTERS -->
 <div class="filter-bar">
   <span class="filter-label">Gestor</span>
@@ -1438,6 +1444,19 @@ async function loadAll(){
       fechaFmt
     );
   }
+
+  // Mostrar info de debug por hoja
+  const dbgPanel = document.getElementById('debug-panel');
+  const dbgInfo = document.getElementById('debug-info');
+  if(dbgPanel && dbgInfo){
+    const perHoja = KNOWN_SHEETS.map(s=>{
+      const st = sheetStats[s.fecha];
+      return st ? `${s.fecha}:${st.total}` : `${s.fecha}:ERR`;
+    }).join(' | ');
+    dbgInfo.textContent = `Total allData=${allData.length} | ` + perHoja;
+    dbgPanel.style.display = 'block';
+  }
+
   setProgress(0,0);
 }
 
