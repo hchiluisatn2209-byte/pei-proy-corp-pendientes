@@ -444,7 +444,7 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
 <script>
 // ── CONFIG ──────────────────────────────────────────────────────────────
 const SHEET_ID = '1e0LPzPCBzAuO7HXpYAYSo7ogXQg0rau5-CFrGUfyzaE';
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz42uhI5KNPGLeSJd1OrFWLS_fHM-Oh-E18UDjjEV9cwdbtKMl0LhkBiksrXATdPAfc/exec/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz42uhI5KNPGLeSJd1OrFWLS_fHM-Oh-E18UDjjEV9cwdbtKMl0LhkBiksrXATdPAfc/exec';
 
 // ── CÓMO AGREGAR UNA NUEVA HOJA ────────────────────────────────────────
 // 1. Abre el Google Sheets y haz clic en la pestaña de la nueva hoja
@@ -894,6 +894,9 @@ function renderGestores(){
     map[g].rows.push(r);
   });
 
+  // Guardar en cache para exportación
+  Object.entries(map).forEach(([g,d])=>{ if(!_gestorMapCache[g])_gestorMapCache[g]={}; Object.assign(_gestorMapCache[g],d,{nombre:g}); });
+
   const rows=Object.entries(map)
     .filter(([,d])=>d.plan+d.det+d.rep+d.asig>0)
     .sort((a,b)=>(b[1].plan+b[1].det+b[1].rep+b[1].asig)-(a[1].plan+a[1].det+a[1].rep+a[1].asig));
@@ -968,12 +971,17 @@ function renderGestores(){
         ${d.rep? `<div class="gc-est"><span class="gc-est-dot" style="background:#FFA700"></span><span class="gc-est-n" style="color:#FFA700">${d.rep}</span> Replanificada</div>`:''}
         ${d.asig?`<div class="gc-est"><span class="gc-est-dot" style="background:#6EBEEB"></span><span class="gc-est-n" style="color:#6EBEEB">${d.asig}</span> AsignadoTarea</div>`:''}
       </div>
-      <div class="gc-toggle" id="tog-${uid}" onclick="toggleDetalle(${uid})">
-        <span class="gc-toggle-arrow">▼</span>
-        Ver detalle de ${detRows.length} órdenes
-        <span style="font-size:10px;color:var(--muted);font-weight:400;margin-left:6px">
-          · cortes: ${cortesGestor}
-        </span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="gc-toggle" id="tog-${uid}" onclick="toggleDetalle(${uid})" style="flex:1">
+          <span class="gc-toggle-arrow">▼</span>
+          Ver detalle de ${detRows.length} órdenes
+          <span style="font-size:10px;color:var(--muted);font-weight:400;margin-left:6px">
+            · cortes: ${cortesGestor}
+          </span>
+        </div>
+        <button onclick="exportarExcelGestor('${encodeURIComponent(g)}')" style="display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:16px;border:1.5px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:#34D399;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0">
+          ⬇ Excel
+        </button>
       </div>
       <div class="gc-detail" id="det-${uid}">
         <table>
@@ -1307,6 +1315,31 @@ function setDetalleEstado(e){
 }
 
 // ── EXPORTAR CSV ──────────────────────────────────────────────────────
+function exportarExcelGestor(encoded){
+  const nombre=decodeURIComponent(encoded);
+  const d=_gestorMapCache[nombre];
+  if(!d||!d.rows)return;
+  const rows=d.rows.filter(r=>tieneCarga(r)||esPre(r));
+  const headers=['FECHA_SOLICITUD','NOMBRE_USR_ULT_PLAN','TIPO_EMPRESA','CLIENTE','LOGIN',
+    'ESTADO SERVICIO','PRODUCTO','TIPO ÓRDEN','TÉCNICA SUCURSAL','FE ULT PLAN',
+    'OBS_ULT_PLAN','MOTIVO','ULT_OBS_REPLANIFICADA','ESTADO_CONTRATO','VENDEDOR','CORTE'];
+  const colKeys=[C.FECHA_SOL,C.GESTOR,C.EMPRESA,C.CLIENTE,C.LOGIN,C.EST,
+    C.PRODUCTO,C.TIPO_ORDEN,C.SUCURSAL,C.FE_PLAN,
+    C.OBS_PLAN,C.MOTIVO,C.OBS_REPLAN,C.CONTRATO,C.VENDEDOR,'_fecha'];
+  const sep=';';
+  const bom='﻿';
+  const csv=bom+[headers.join(sep),
+    ...rows.map(r=>colKeys.map(k=>{
+      const v=String(r[k]||'').replace(/;/g,',').replace(/\n/g,' ');
+      return v.includes(sep)?`"${v}"`:v;
+    }).join(sep))
+  ].join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`ordenes_${(d.nombre||'gestor').replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
 function exportarExcel(){
   const d=_gestorMapCache[_gestorSeleccionado];
   if(!d)return;
