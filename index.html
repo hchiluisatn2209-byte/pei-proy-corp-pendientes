@@ -493,6 +493,8 @@ const C={
   CONTRATO:'ESTADO_CONTRATO',
   VENDEDOR:'VENDEDOR'
 };
+// Normalizar claves a mayusculas para que coincidan con el CSV parseado (headers en uppercase)
+Object.keys(C).forEach(k=>{ C[k]=C[k].trim().toUpperCase(); });
 
 const PALETTE=['#00B0F0','#FF44B0','#FF6F42','#FFA700','#8B6FE8','#6EBEEB','#34D399','#FF9A44','#AA7FD0','#64B4F5'];
 const GC='rgba(0,176,240,0.08)';
@@ -528,7 +530,8 @@ function parseCSV(txt){
     .map(l=>{
       const v=parseLine(l);
       const o={};
-      h.forEach((k,i)=>{o[k.trim()]=(v[i]||'').trim();});
+      // trim both key AND value to prevent silent mismatches on gestor/estado filters
+      h.forEach((k,i)=>{o[k.trim().toUpperCase()]=(v[i]||'').trim();});
       return o;
     }).filter(r=>Object.values(r).some(v=>v));
 }
@@ -1014,13 +1017,25 @@ function doughnut(id,entries,legId){
 }
 
 function renderTend(){
-  const dates=KNOWN_SHEETS.map(s=>s.fecha).filter(d=>sheetStats[d]);
+  // Recalcular stats POR CORTE usando filtered (respeta filtros de gestor, corte, etc.)
+  const fStats={};
+  filtered.forEach(r=>{
+    const f=r._fecha;if(!f)return;
+    if(!fStats[f])fStats[f]={total:0,plan:0,det:0,rep:0,asig:0};
+    fStats[f].total++;
+    if(esPlan(r))fStats[f].plan++;
+    if(esDet(r)) fStats[f].det++;
+    if(esRep(r)) fStats[f].rep++;
+    if(esAsig(r))fStats[f].asig++;
+  });
+  const dates=KNOWN_SHEETS.map(s=>s.fecha).filter(d=>fStats[d]);
+  if(!dates.length){if(charts['ch-tend'])charts['ch-tend'].destroy();return;}
   mkChart('ch-tend',{type:'line',data:{labels:dates,datasets:[
-    {label:'Total',    data:dates.map(d=>sheetStats[d].total),borderColor:'#00B0F0',backgroundColor:'rgba(0,176,240,.08)',tension:.3,pointRadius:4,fill:true,borderWidth:2},
-    {label:'Plan',     data:dates.map(d=>sheetStats[d].plan), borderColor:'#00B5CB',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:1.5},
-    {label:'Detenido', data:dates.map(d=>sheetStats[d].det),  borderColor:'#FF44B0',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:1.5,borderDash:[4,3]},
-    {label:'Replan',   data:dates.map(d=>sheetStats[d].rep),  borderColor:'#FFA700',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:1.5,borderDash:[2,3]},
-    {label:'AsigTarea',data:dates.map(d=>sheetStats[d].asig), borderColor:'#6EBEEB',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:1.5},
+    {label:'Total',    data:dates.map(d=>fStats[d].total),borderColor:'#00B0F0',backgroundColor:'rgba(0,176,240,.08)',tension:.3,pointRadius:4,fill:true,borderWidth:2},
+    {label:'Plan',     data:dates.map(d=>fStats[d].plan), borderColor:'#00B5CB',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:1.5},
+    {label:'Detenido', data:dates.map(d=>fStats[d].det),  borderColor:'#FF44B0',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:1.5,borderDash:[4,3]},
+    {label:'Replan',   data:dates.map(d=>fStats[d].rep),  borderColor:'#FFA700',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:1.5,borderDash:[2,3]},
+    {label:'AsigTarea',data:dates.map(d=>fStats[d].asig), borderColor:'#6EBEEB',backgroundColor:'transparent',tension:.3,pointRadius:3,borderWidth:1.5},
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
     scales:{x:{grid:{color:GC},ticks:{...TST,maxRotation:45,autoSkip:false}},y:{grid:{color:GC},ticks:TST}}}});
 }
