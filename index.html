@@ -493,8 +493,6 @@ const C={
   CONTRATO:'ESTADO_CONTRATO',
   VENDEDOR:'VENDEDOR'
 };
-// Normalizar claves a mayusculas para que coincidan con el CSV parseado (headers en uppercase)
-Object.keys(C).forEach(k=>{ C[k]=C[k].trim().toUpperCase(); });
 
 const PALETTE=['#00B0F0','#FF44B0','#FF6F42','#FFA700','#8B6FE8','#6EBEEB','#34D399','#FF9A44','#AA7FD0','#64B4F5'];
 const GC='rgba(0,176,240,0.08)';
@@ -530,8 +528,7 @@ function parseCSV(txt){
     .map(l=>{
       const v=parseLine(l);
       const o={};
-      // trim both key AND value to prevent silent mismatches on gestor/estado filters
-      h.forEach((k,i)=>{o[k.trim().toUpperCase()]=(v[i]||'').trim();});
+      h.forEach((k,i)=>{o[k.trim()]=(v[i]||'').trim();});
       return o;
     }).filter(r=>Object.values(r).some(v=>v));
 }
@@ -773,11 +770,8 @@ function applyFilters(){
   const lg=sfGetVals('sf-login');
   const f =sfGetVals('sf-fecha');
 
-  // ── SIN DEDUPLICACIÓN ────────────────────────────────────────────────
-  // filtered contiene EXACTAMENTE las filas del Sheets que cumplen los filtros.
-  // Si el usuario filtra Gestor=X + Corte=21-05-26, verá exactamente
-  // las filas de esa hoja asignadas a ese gestor, sin eliminar duplicados.
-  filtered=allData.filter(r=>
+  // Paso 1: filtrar por todos los criterios
+  let base=allData.filter(r=>
     (!g  || g.has(r[C.GESTOR]))&&
     (!e  || e.has(getEst(r)))&&
     (!t  || t.has(r[C.EMPRESA]))&&
@@ -786,14 +780,66 @@ function applyFilters(){
     (!f  || f.has(r._fecha))
   );
 
+  // Paso 2: si NO hay filtro de corte activo, deduplicar por LOGIN
+  // conservando solo el registro del corte más reciente para cada LOGIN.
+  // Así una orden que aparece en 5 cortes cuenta como 1, no como 5.
+  if(!f){
+    const map=new Map();
+    base.forEach(r=>{
+      const key=(r[C.LOGIN]||r[C.ID_SERV]||'').trim();
+      if(!key){filtered.push&&null;return;}// sin clave: incluir siempre
+      const prev=map.get(key);
+      // Preferir el corte más reciente (fecha lexicográfica DD-MM-YY → comparar YY-MM-DD)
+      if(!prev||r._fecha>prev._fecha) map.set(key,r);
+    });
+    // Incluir filas sin LOGIN/ID_SERV tal cual
+    const sinKey=base.filter(r=>!(r[C.LOGIN]||r[C.ID_SERV]||'').trim());
+    filtered=[...map.values(),...sinKey];
+  } else {
+    // Con filtro de corte: mostrar todos los registros de esa hoja sin deduplicar
+    filtered=base;
+  }
+
   const notaCorte=document.getElementById('nota-corte');
   if(notaCorte)notaCorte.style.display=(f!==null)?'':'none';
+
+  // Panel diagnóstico: muestra valores reales de campos clave
+  const dbgInfo=document.getElementById('debug-info');
+  if(dbgInfo){
+    const gestorKey=C.GESTOR;
+    const estKey=C.EST;
+    // Contar registros de Romina en allData para diagnóstico
+    const rominaAll=allData.filter(r=>(r[gestorKey]||'').includes('ROMINA'));
+    const rominaFiltered=filtered.filter(r=>(r[gestorKey]||'').includes('ROMINA'));
+    const rominaEn2105=allData.filter(r=>(r[gestorKey]||'').includes('ROMINA')&&r._fecha==='21-05-26');
+    // Muestra keys reales de la primera fila para detectar mismatch de columnas
+    const fila0=allData[0]||{};
+    const keysGestor=Object.keys(fila0).filter(k=>k.includes('NOMBRE')||k.includes('USR')||k.includes('PLAN'));
+    const keysEst=Object.keys(fila0).filter(k=>k.includes('ESTADO')||k.includes('SERV'));
+    dbgInfo.innerHTML=
+      `allData=${allData.length} | filtered=${filtered.length}<br>`
+      +`Romina en allData=${rominaAll.length} | en filtered=${rominaFiltered.length} | en corte 21-05-26=${rominaEn2105.length}<br>`
+      +`C.GESTOR="${gestorKey}" → keys reales con NOMBRE/USR/PLAN: [${keysGestor.join(', ')}]<br>`
+      +`C.EST="${estKey}" → keys reales con ESTADO/SERV: [${keysEst.join(', ')}]<br>`
+      +`Valor gestor fila[0]: "${fila0[gestorKey]||'NO ENCONTRADO'}"`;
+    document.getElementById('debug-panel').style.display='block';
+  }
+
   renderAll();
 }
 
 function clearFilters(){
   Object.keys(SF).forEach(id=>{if(SF[id]){SF[id].selected.clear();sfRenderChips(id);sfRenderList(id,'');}});
-  filtered=[...allData];
+  // Sin filtro de corte: deduplicar por LOGIN, conservando solo el corte más reciente
+  const _clrMap=new Map();
+  allData.forEach(r=>{
+    const key=(r[C.LOGIN]||r[C.ID_SERV]||'').trim();
+    if(!key)return;
+    const prev=_clrMap.get(key);
+    if(!prev||r._fecha>prev._fecha)_clrMap.set(key,r);
+  });
+  const _clrSin=allData.filter(r=>!(r[C.LOGIN]||r[C.ID_SERV]||'').trim());
+  filtered=[..._clrMap.values(),..._clrSin];
   const notaCorte=document.getElementById('nota-corte');
   if(notaCorte)notaCorte.style.display='none';
   renderAll();
@@ -802,6 +848,13 @@ function clearFilters(){
 // ── KPIs ───────────────────────────────────────────────────────────────
 // Sin deduplicación: los KPIs reflejan exactamente los registros en filtered
 function renderKPIs(){
+  // DEBUG: mostrar valores reales de campos clave en consola
+  if(filtered.length>0 && filtered.length<=20){
+    console.log('DEBUG filtered sample:',filtered.slice(0,3).map(r=>({
+      gestor:r[C.GESTOR], est:r[C.EST], estRaw:r['ESTADO SERVICIO'],
+      keys:Object.keys(r).filter(k=>k.includes('ESTADO')||k.includes('NOMBRE'))
+    })));
+  }
   const n    =filtered.length;
   const gest =new Set(filtered.filter(tieneCarga).map(r=>r[C.GESTOR]).filter(Boolean)).size;
   const plan =filtered.filter(esPlan).length;
@@ -1364,6 +1417,7 @@ async function fetchSheetPage(gid, fecha, page) {
     const metaLine = txt.split('\n').find(l => l.startsWith('__META__'));
     const hasMore = metaLine ? metaLine.split(',')[2] === '1' : false;
     const rows = parseCSV(txt).map(row => ({...row, _fecha:fecha, _gid:gid}));
+    console.log(`[FETCH] gid=${gid} fecha=${fecha} page=${page} rows=${rows.length} hasMore=${hasMore} meta=${metaLine||'NONE'}`);
     return {rows, hasMore};
   } catch(err) {
     clearTimeout(timer);
@@ -1435,8 +1489,17 @@ async function loadAll(){
   populateSel('sf-fecha',  allData.map(r=>r._fecha));
   populateSel('sf-login',  allData.map(r=>r[C.LOGIN]));
 
-  // filtered inicia igual a allData
-  filtered=[...allData];
+  // filtered inicia deduplicado por LOGIN (sin filtro de corte activo)
+  // conserva solo el registro más reciente de cada LOGIN
+  const _initMap=new Map();
+  allData.forEach(r=>{
+    const key=(r[C.LOGIN]||r[C.ID_SERV]||'').trim();
+    if(!key)return;
+    const prev=_initMap.get(key);
+    if(!prev||r._fecha>prev._fecha)_initMap.set(key,r);
+  });
+  const _sinKey=allData.filter(r=>!(r[C.LOGIN]||r[C.ID_SERV]||'').trim());
+  filtered=[..._initMap.values(),..._sinKey];
   renderAll();
 
   const now=new Date();
