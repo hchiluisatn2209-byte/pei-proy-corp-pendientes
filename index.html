@@ -211,11 +211,15 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
 /* ── SORTABLE TABLE HEADERS ── */
 thead th.sortable{cursor:pointer;user-select:none;transition:color .15s,background .15s;position:relative;padding-right:22px!important}
 thead th.sortable:hover{color:#fff;background:rgba(0,176,240,.08)}
-thead th.sortable::after{content:'⇅';position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;opacity:.35;transition:opacity .15s}
+thead th.sortable::after{content:'⇅';position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;opacity:.35;transition:opacity .15s;pointer-events:none}
 thead th.sortable.sort-asc::after{content:'↑';opacity:1;color:var(--turquesa)}
 thead th.sortable.sort-desc::after{content:'↓';opacity:1;color:var(--turquesa)}
 thead th.sortable.sort-asc,thead th.sortable.sort-desc{color:var(--turquesa)}
 .gc-detail thead th.sortable{padding-right:20px!important}
+
+/* ── TOOLTIP PARA TEXTO TRUNCADO ── */
+.td-tooltip{position:fixed;z-index:9999;background:rgba(10,25,60,.97);border:1px solid rgba(0,176,240,.45);color:#e8f0ff;font-size:12px;font-family:var(--font);padding:7px 12px;border-radius:8px;max-width:380px;white-space:pre-wrap;word-break:break-word;box-shadow:0 6px 24px rgba(0,0,0,.6);pointer-events:none;opacity:0;transition:opacity .12s;line-height:1.5}
+.td-tooltip.visible{opacity:1}
 </style>
 </head>
 <body>
@@ -393,15 +397,49 @@ thead th.sortable.sort-asc,thead th.sortable.sort-desc{color:var(--turquesa)}
   <div id="tab-alertas" style="display:none">
     <div class="section-title"><span class="dot-sec"></span>Alertas · Días sin Gestión (FE ULT PLAN vs hoy)</div>
     <div class="tbl-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <span id="alerta-gest-count" style="font-family:var(--font-cond);font-size:11px;color:var(--muted);letter-spacing:1px"></span>
+        <button onclick="exportarAlertasExcel('gest')" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1.5px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:#34D399;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;letter-spacing:.5px;white-space:nowrap">
+          ⬇ Exportar Excel
+        </button>
+      </div>
       <div class="tbl-scroll"><table>
-        <thead><tr><th>#</th><th>Gestor</th><th>Login/Servicio</th><th>Cliente</th><th>Producto</th><th>Estado Servicio</th><th>FE Últ Plan</th><th>Días sin gestión</th><th>Fecha Solicitud</th><th>Días desde solicitud</th></tr></thead>
+        <thead><tr>
+          <th>#</th>
+          <th class="sortable" onclick="sortAlerta('gest',this,'GESTOR')">Gestor</th>
+          <th class="sortable" onclick="sortAlerta('gest',this,'LOGIN')">Login/Servicio</th>
+          <th class="sortable" onclick="sortAlerta('gest',this,'CLIENTE')">Cliente</th>
+          <th class="sortable" onclick="sortAlerta('gest',this,'PRODUCTO')">Producto</th>
+          <th class="sortable" onclick="sortAlerta('gest',this,'EST')">Estado Servicio</th>
+          <th class="sortable" onclick="sortAlerta('gest',this,'FE_PLAN')">FE Últ Plan</th>
+          <th class="sortable" onclick="sortAlerta('gest',this,'DIAS_G')">Días sin gestión</th>
+          <th class="sortable" onclick="sortAlerta('gest',this,'FECHA_SOL')">Fecha Solicitud</th>
+          <th class="sortable" onclick="sortAlerta('gest',this,'DIAS_S')">Días desde solicitud</th>
+        </tr></thead>
         <tbody id="tbl-gest"></tbody>
       </table></div>
     </div>
     <div class="section-title"><span class="dot-sec"></span>Solicitudes Antiguas · Días desde ingreso (FECHA_SOLICITUD vs hoy)</div>
     <div class="tbl-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <span id="alerta-sol-count" style="font-family:var(--font-cond);font-size:11px;color:var(--muted);letter-spacing:1px"></span>
+        <button onclick="exportarAlertasExcel('sol')" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1.5px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:#34D399;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;letter-spacing:.5px;white-space:nowrap">
+          ⬇ Exportar Excel
+        </button>
+      </div>
       <div class="tbl-scroll"><table>
-        <thead><tr><th>#</th><th>Gestor</th><th>Login/Servicio</th><th>Cliente</th><th>Producto</th><th>Estado Servicio</th><th>Fecha Solicitud</th><th>Días desde solicitud</th><th>FE Últ Plan</th><th>Días sin gestión</th></tr></thead>
+        <thead><tr>
+          <th>#</th>
+          <th class="sortable" onclick="sortAlerta('sol',this,'GESTOR')">Gestor</th>
+          <th class="sortable" onclick="sortAlerta('sol',this,'LOGIN')">Login/Servicio</th>
+          <th class="sortable" onclick="sortAlerta('sol',this,'CLIENTE')">Cliente</th>
+          <th class="sortable" onclick="sortAlerta('sol',this,'PRODUCTO')">Producto</th>
+          <th class="sortable" onclick="sortAlerta('sol',this,'EST')">Estado Servicio</th>
+          <th class="sortable" onclick="sortAlerta('sol',this,'FECHA_SOL')">Fecha Solicitud</th>
+          <th class="sortable" onclick="sortAlerta('sol',this,'DIAS_S')">Días desde solicitud</th>
+          <th class="sortable" onclick="sortAlerta('sol',this,'FE_PLAN')">FE Últ Plan</th>
+          <th class="sortable" onclick="sortAlerta('sol',this,'DIAS_G')">Días sin gestión</th>
+        </tr></thead>
         <tbody id="tbl-sol"></tbody>
       </table></div>
     </div>
@@ -491,8 +529,8 @@ const KNOWN_SHEETS = [
   {fecha:'20-05-26',gid:1609901699},
   {fecha:'21-05-26',gid:629799442},
   {fecha:'22-05-26',gid:482320858},
-  {fecha:'23-05-26',gid:740944381},
-  {fecha:'25-05-26',gid:2146316860},
+     {fecha:'23-05-26',gid:740944381},
+     {fecha:'25-05-26',gid:2146316860},
 
   // ▼ AGREGAR NUEVAS HOJAS AQUÍ ▼
   // { fecha: 'DD-MM-YY', gid: PEGAR_GID_AQUI },
@@ -531,6 +569,40 @@ let allData=[], filtered=[], charts={}, sheetStats={};
 
 // ── UTILS ──────────────────────────────────────────────────────────────
 const appsScriptUrl = gid => `${APPS_SCRIPT_URL}?gid=${gid}`;
+
+// Escapar HTML para atributos title
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ── TOOLTIP GLOBAL ─────────────────────────────────────────────────────
+(function(){
+  const tip=document.createElement('div');
+  tip.className='td-tooltip';
+  document.body.appendChild(tip);
+  let _timer;
+  document.addEventListener('mouseover',e=>{
+    const td=e.target.closest('td[title]');
+    if(!td||!td.title)return;
+    clearTimeout(_timer);
+    _timer=setTimeout(()=>{
+      tip.textContent=td.title;
+      tip.classList.add('visible');
+      moveTip(e);
+    },220);
+  });
+  document.addEventListener('mousemove',e=>{
+    if(tip.classList.contains('visible'))moveTip(e);
+  });
+  document.addEventListener('mouseout',e=>{
+    if(e.target.closest('td[title]')){clearTimeout(_timer);tip.classList.remove('visible');}
+  });
+  function moveTip(e){
+    const x=e.clientX+14,y=e.clientY+14;
+    tip.style.left='0px'; tip.style.top='0px';
+    const r=tip.getBoundingClientRect();
+    tip.style.left=(x+r.width>window.innerWidth?e.clientX-r.width-8:x)+'px';
+    tip.style.top=(y+r.height>window.innerHeight?e.clientY-r.height-8:y)+'px';
+  }
+})();
 
 function parseCSV(txt){
   if(!txt||txt.trim().length<2)return[];
@@ -1035,45 +1107,125 @@ function renderGestores(){
 }
 
 // ── ALERTAS ────────────────────────────────────────────────────────────
-// Sin deduplicación: se usan las filas de filtered tal cual
+let _alertaRows={gest:[],sol:[]};
+let _alertaSortState={gest:{col:null,dir:'asc'},sol:{col:null,dir:'asc'}};
+
 function renderAlertas(){
-  const rows1=filtered.filter(tieneCarga)
+  _alertaRows.gest=filtered.filter(tieneCarga)
     .map(r=>({...r,_dG:diasDesde(r[C.FE_PLAN]),_dS:diasDesde(r[C.FECHA_SOL])}))
     .filter(r=>r._dG!==null)
     .sort((a,b)=>b._dG-a._dG)
-    .slice(0,100);
+    .slice(0,200);
 
-  document.getElementById('tbl-gest').innerHTML=rows1.length?rows1.map((r,i)=>`<tr>
-    <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
-    <td style="font-weight:700;color:var(--turquesa);max-width:160px;overflow:hidden;text-overflow:ellipsis;font-size:14px">${r[C.GESTOR]||'—'}</td>
-    <td class="td-login">${r[C.LOGIN]||r[C.ID_SERV]||'—'}</td>
-    <td class="td-client">${r[C.CLIENTE]||'—'}</td>
-    <td class="td-muted">${r[C.PRODUCTO]||'—'}</td>
-    <td>${pill(getEst(r))}</td>
-    <td class="td-num">${fmtDate(r[C.FE_PLAN])}</td>
-    <td>${abDias(r._dG)}</td>
-    <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
-    <td>${abSol(r._dS)}</td>
-  </tr>`).join(''):`<tr><td colspan="10" class="empty">Sin registros con fecha de plan</td></tr>`;
-
-  const rows2=filtered
+  _alertaRows.sol=filtered
     .map(r=>({...r,_dS:diasDesde(r[C.FECHA_SOL]),_dG:diasDesde(r[C.FE_PLAN])}))
     .filter(r=>r._dS!==null)
     .sort((a,b)=>b._dS-a._dS)
-    .slice(0,100);
+    .slice(0,200);
 
-  document.getElementById('tbl-sol').innerHTML=rows2.length?rows2.map((r,i)=>`<tr>
-    <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
-    <td style="font-weight:700;color:var(--turquesa);max-width:160px;overflow:hidden;text-overflow:ellipsis;font-size:14px">${r[C.GESTOR]||'—'}</td>
-    <td class="td-login">${r[C.LOGIN]||r[C.ID_SERV]||'—'}</td>
-    <td class="td-client">${r[C.CLIENTE]||'—'}</td>
-    <td class="td-muted">${r[C.PRODUCTO]||'—'}</td>
-    <td>${pill(getEst(r))}</td>
-    <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
-    <td>${abSol(r._dS)}</td>
-    <td class="td-num">${fmtDate(r[C.FE_PLAN])}</td>
-    <td>${abDias(r._dG)}</td>
-  </tr>`).join(''):`<tr><td colspan="10" class="empty">Sin registros con fecha de solicitud</td></tr>`;
+  // Resetear estados de sort al recargar datos
+  _alertaSortState={gest:{col:null,dir:'asc'},sol:{col:null,dir:'asc'}};
+  ['tbl-gest','tbl-sol'].forEach(id=>{
+    const tbl=document.getElementById(id);
+    if(tbl)tbl.closest('table').querySelectorAll('th.sortable').forEach(h=>h.classList.remove('sort-asc','sort-desc'));
+  });
+
+  renderAlertaTabla('gest');
+  renderAlertaTabla('sol');
+}
+
+function sortAlerta(tbl,th,col){
+  const st=_alertaSortState[tbl];
+  if(st.col===col){st.dir=st.dir==='asc'?'desc':'asc';}
+  else{st.col=col;st.dir='asc';}
+  th.closest('thead').querySelectorAll('th.sortable').forEach(h=>h.classList.remove('sort-asc','sort-desc'));
+  th.classList.add(st.dir==='asc'?'sort-asc':'sort-desc');
+  renderAlertaTabla(tbl);
+}
+
+function applyAlertaSort(rows,col,dir){
+  if(!col)return rows;
+  const d=dir==='asc'?1:-1;
+  return [...rows].sort((a,b)=>{
+    if(col==='DIAS_G')return((a._dG??-Infinity)-(b._dG??-Infinity))*d;
+    if(col==='DIAS_S')return((a._dS??-Infinity)-(b._dS??-Infinity))*d;
+    if(col==='FE_PLAN')return((parseDate(a[C.FE_PLAN])?.getTime()??0)-(parseDate(b[C.FE_PLAN])?.getTime()??0))*d;
+    if(col==='FECHA_SOL')return((parseDate(a[C.FECHA_SOL])?.getTime()??0)-(parseDate(b[C.FECHA_SOL])?.getTime()??0))*d;
+    const keyMap={GESTOR:C.GESTOR,LOGIN:C.LOGIN,CLIENTE:C.CLIENTE,PRODUCTO:C.PRODUCTO,EST:C.EST};
+    const va=(a[keyMap[col]]||'').toLowerCase();
+    const vb=(b[keyMap[col]]||'').toLowerCase();
+    return va<vb?-d:va>vb?d:0;
+  });
+}
+
+function renderAlertaTabla(tbl){
+  const st=_alertaSortState[tbl];
+  const rows=applyAlertaSort(_alertaRows[tbl],st.col,st.dir);
+  const isGest=tbl==='gest';
+  const countEl=document.getElementById(isGest?'alerta-gest-count':'alerta-sol-count');
+  if(countEl)countEl.textContent=rows.length+' REGISTROS';
+  const bodyId=isGest?'tbl-gest':'tbl-sol';
+  if(!rows.length){
+    document.getElementById(bodyId).innerHTML=`<tr><td colspan="10" class="empty">${isGest?'Sin registros con fecha de plan':'Sin registros con fecha de solicitud'}</td></tr>`;
+    return;
+  }
+  document.getElementById(bodyId).innerHTML=rows.map((r,i)=>{
+    const ges=r[C.GESTOR]||'—';
+    const login=r[C.LOGIN]||r[C.ID_SERV]||'—';
+    const cli=r[C.CLIENTE]||'—';
+    const prod=r[C.PRODUCTO]||'—';
+    if(isGest){
+      return`<tr>
+        <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
+        <td style="font-weight:700;color:var(--turquesa);max-width:160px;overflow:hidden;text-overflow:ellipsis;font-size:14px" title="${esc(ges)}">${ges}</td>
+        <td class="td-login" title="${esc(login)}">${login}</td>
+        <td class="td-client" title="${esc(cli)}">${cli}</td>
+        <td class="td-muted" title="${esc(prod)}">${prod}</td>
+        <td>${pill(getEst(r))}</td>
+        <td class="td-num">${fmtDate(r[C.FE_PLAN])}</td>
+        <td>${abDias(r._dG)}</td>
+        <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
+        <td>${abSol(r._dS)}</td>
+      </tr>`;
+    } else {
+      return`<tr>
+        <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
+        <td style="font-weight:700;color:var(--turquesa);max-width:160px;overflow:hidden;text-overflow:ellipsis;font-size:14px" title="${esc(ges)}">${ges}</td>
+        <td class="td-login" title="${esc(login)}">${login}</td>
+        <td class="td-client" title="${esc(cli)}">${cli}</td>
+        <td class="td-muted" title="${esc(prod)}">${prod}</td>
+        <td>${pill(getEst(r))}</td>
+        <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
+        <td>${abSol(r._dS)}</td>
+        <td class="td-num">${fmtDate(r[C.FE_PLAN])}</td>
+        <td>${abDias(r._dG)}</td>
+      </tr>`;
+    }
+  }).join('');
+}
+
+function exportarAlertasExcel(tbl){
+  const rows=_alertaRows[tbl];
+  if(!rows||!rows.length)return;
+  const isGest=tbl==='gest';
+  const headers=isGest
+    ?['GESTOR','LOGIN','CLIENTE','PRODUCTO','ESTADO_SERVICIO','FE_ULT_PLAN','DIAS_SIN_GESTION','FECHA_SOLICITUD','DIAS_DESDE_SOLICITUD']
+    :['GESTOR','LOGIN','CLIENTE','PRODUCTO','ESTADO_SERVICIO','FECHA_SOLICITUD','DIAS_DESDE_SOLICITUD','FE_ULT_PLAN','DIAS_SIN_GESTION'];
+  const escape=v=>'"'+(String(v||'').replace(/"/g,'""'))+'"';
+  const lines=[headers.map(escape).join(',')];
+  rows.forEach(r=>{
+    const vals=isGest
+      ?[r[C.GESTOR],r[C.LOGIN]||r[C.ID_SERV],r[C.CLIENTE],r[C.PRODUCTO],getEst(r),fmtDate(r[C.FE_PLAN]),r._dG??'',fmtDate(r[C.FECHA_SOL]),r._dS??'']
+      :[r[C.GESTOR],r[C.LOGIN]||r[C.ID_SERV],r[C.CLIENTE],r[C.PRODUCTO],getEst(r),fmtDate(r[C.FECHA_SOL]),r._dS??'',fmtDate(r[C.FE_PLAN]),r._dG??''];
+    lines.push(vals.map(escape).join(','));
+  });
+  const bom='\uFEFF';
+  const blob=new Blob([bom+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`PEI_Alertas_${isGest?'DiasGestion':'SolicitudesAntiguas'}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 // ── CHARTS ─────────────────────────────────────────────────────────────
@@ -1253,18 +1405,18 @@ function renderGcRows(rows){
     return`<tr>
       <td class="td-num">${i+1}</td>
       <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
-      <td class="td-muted">${r[C.EMPRESA]||'—'}</td>
-      <td class="td-login" style="font-weight:400;font-size:13px">${r[C.LOGIN]||'—'}</td>
-      <td class="td-client">${r[C.CLIENTE]||'—'}</td>
+      <td class="td-muted" title="${esc(r[C.EMPRESA])}">${r[C.EMPRESA]||'—'}</td>
+      <td class="td-login" style="font-weight:400;font-size:13px" title="${esc(r[C.LOGIN])}">${r[C.LOGIN]||'—'}</td>
+      <td class="td-client" title="${esc(r[C.CLIENTE])}">${r[C.CLIENTE]||'—'}</td>
       <td>${pill(getEst(r))}</td>
-      <td class="td-muted">${r[C.PRODUCTO]||'—'}</td>
-      <td class="td-muted">${r[C.TIPO_ORDEN]||'—'}</td>
-      <td class="td-muted">${r[C.SUCURSAL]||'—'}</td>
+      <td class="td-muted" title="${esc(r[C.PRODUCTO])}">${r[C.PRODUCTO]||'—'}</td>
+      <td class="td-muted" title="${esc(r[C.TIPO_ORDEN])}">${r[C.TIPO_ORDEN]||'—'}</td>
+      <td class="td-muted" title="${esc(r[C.SUCURSAL])}">${r[C.SUCURSAL]||'—'}</td>
       <td class="td-num" style="color:#e8f0ff">${fmtDate(r[C.FE_PLAN])}</td>
       <td>${abDias(dG)}</td>
-      <td style="font-size:13px;color:var(--amarillo)">${r[C.MOTIVO]||'—'}</td>
-      <td class="td-muted">${r[C.CONTRATO]||'—'}</td>
-      <td class="td-muted">${r[C.VENDEDOR]||'—'}</td>
+      <td style="font-size:13px;color:var(--amarillo)" title="${esc(r[C.MOTIVO])}">${r[C.MOTIVO]||'—'}</td>
+      <td class="td-muted" title="${esc(r[C.CONTRATO])}">${r[C.CONTRATO]||'—'}</td>
+      <td class="td-muted" title="${esc(r[C.VENDEDOR])}">${r[C.VENDEDOR]||'—'}</td>
     </tr>`;
   }).join('')||'<tr><td colspan="15" class="empty">Sin órdenes activas</td></tr>';
 }
@@ -1434,20 +1586,20 @@ function renderDetalleTabla(){
       return`<tr>
         <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
         <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
-        <td class="td-muted">${r[C.EMPRESA]||'—'}</td>
-        <td class="td-login">${r[C.LOGIN]||'—'}</td>
-        <td class="td-client">${r[C.CLIENTE]||'—'}</td>
+        <td class="td-muted" title="${esc(r[C.EMPRESA])}">${r[C.EMPRESA]||'—'}</td>
+        <td class="td-login" title="${esc(r[C.LOGIN])}">${r[C.LOGIN]||'—'}</td>
+        <td class="td-client" title="${esc(r[C.CLIENTE])}">${r[C.CLIENTE]||'—'}</td>
         <td>${pill(getEst(r))}</td>
-        <td class="td-muted">${r[C.PRODUCTO]||'—'}</td>
-        <td class="td-muted">${r[C.TIPO_ORDEN]||'—'}</td>
-        <td class="td-muted">${r[C.SUCURSAL]||'—'}</td>
+        <td class="td-muted" title="${esc(r[C.PRODUCTO])}">${r[C.PRODUCTO]||'—'}</td>
+        <td class="td-muted" title="${esc(r[C.TIPO_ORDEN])}">${r[C.TIPO_ORDEN]||'—'}</td>
+        <td class="td-muted" title="${esc(r[C.SUCURSAL])}">${r[C.SUCURSAL]||'—'}</td>
         <td class="td-num">${fmtDate(r[C.FE_PLAN])}</td>
         <td>${abDias(dG)}</td>
-        <td class="td-obs" title="${r[C.OBS_PLAN]||''}">${obs1}</td>
-        <td style="font-size:14px;color:var(--amarillo)">${r[C.MOTIVO]||'—'}</td>
-        <td class="td-obs" title="${r[C.OBS_REPLAN]||''}">${obs2}</td>
-        <td class="td-muted">${r[C.CONTRATO]||'—'}</td>
-        <td class="td-muted">${r[C.VENDEDOR]||'—'}</td>
+        <td class="td-obs" title="${esc(r[C.OBS_PLAN]||'')}">${obs1}</td>
+        <td style="font-size:14px;color:var(--amarillo)" title="${esc(r[C.MOTIVO])}">${r[C.MOTIVO]||'—'}</td>
+        <td class="td-obs" title="${esc(r[C.OBS_REPLAN]||'')}">${obs2}</td>
+        <td class="td-muted" title="${esc(r[C.CONTRATO])}">${r[C.CONTRATO]||'—'}</td>
+        <td class="td-muted" title="${esc(r[C.VENDEDOR])}">${r[C.VENDEDOR]||'—'}</td>
       </tr>`;
     }).join(''):
     '<tr><td colspan="16" class="empty">Sin órdenes para este filtro</td></tr>';
