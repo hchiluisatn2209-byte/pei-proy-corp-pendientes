@@ -580,27 +580,29 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;'
   document.body.appendChild(tip);
   let _timer;
   document.addEventListener('mouseover',e=>{
-    const td=e.target.closest('td[title]');
-    if(!td||!td.title)return;
+    const td=e.target.closest('td[data-tip]');
+    if(!td)return;
+    const txt=td.getAttribute('data-tip');
+    if(!txt||!txt.trim())return;
     clearTimeout(_timer);
     _timer=setTimeout(()=>{
-      tip.textContent=td.title;
+      tip.textContent=txt;
       tip.classList.add('visible');
       moveTip(e);
-    },220);
+    },180);
   });
   document.addEventListener('mousemove',e=>{
     if(tip.classList.contains('visible'))moveTip(e);
   });
   document.addEventListener('mouseout',e=>{
-    if(e.target.closest('td[title]')){clearTimeout(_timer);tip.classList.remove('visible');}
+    if(e.target.closest('td[data-tip]')){clearTimeout(_timer);tip.classList.remove('visible');}
   });
   function moveTip(e){
+    tip.style.left='0px';tip.style.top='0px';
+    const w=tip.offsetWidth,h=tip.offsetHeight;
     const x=e.clientX+14,y=e.clientY+14;
-    tip.style.left='0px'; tip.style.top='0px';
-    const r=tip.getBoundingClientRect();
-    tip.style.left=(x+r.width>window.innerWidth?e.clientX-r.width-8:x)+'px';
-    tip.style.top=(y+r.height>window.innerHeight?e.clientY-r.height-8:y)+'px';
+    tip.style.left=(x+w>window.innerWidth?e.clientX-w-8:x)+'px';
+    tip.style.top=(y+h>window.innerHeight?e.clientY-h-8:y)+'px';
   }
 })();
 
@@ -778,9 +780,10 @@ function sfToggle(id){
   if(!isOpen){wrap.classList.add('open');document.getElementById(id+'-search')?.focus();}
 }
 
-function sfPopulate(id,vals){
+function sfPopulate(id,vals,desc=false){
   if(!SF[id])return;
   const unique=[...new Set(vals)].filter(Boolean).sort();
+  if(desc)unique.reverse();
   SF[id].all=unique;
   sfRenderList(id,'');
   sfRenderChips(id);
@@ -884,8 +887,8 @@ function initFilters(){
   sfCreate('sf-fecha','Todas');
 }
 
-function populateSel(sfId,vals){
-  sfPopulate(sfId,vals);
+function populateSel(sfId,vals,desc=false){
+  sfPopulate(sfId,vals,desc);
 }
 
 function applyFilters(){
@@ -1028,18 +1031,18 @@ function renderGestores(){
       return`<tr>
         <td class="td-num">${i+1}</td>
         <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
-        <td class="td-muted" title="${esc(r[C.EMPRESA])}">${r[C.EMPRESA]||'—'}</td>
-        <td class="td-login" style="font-weight:400;font-size:13px" title="${esc(r[C.LOGIN])}">${r[C.LOGIN]||'—'}</td>
-        <td class="td-client" title="${esc(r[C.CLIENTE])}">${r[C.CLIENTE]||'—'}</td>
+        <td class="td-muted" data-tip="${esc(r[C.EMPRESA])}">${r[C.EMPRESA]||'—'}</td>
+        <td class="td-login" style="font-weight:400;font-size:13px" data-tip="${esc(r[C.LOGIN])}">${r[C.LOGIN]||'—'}</td>
+        <td class="td-client" data-tip="${esc(r[C.CLIENTE])}">${r[C.CLIENTE]||'—'}</td>
         <td>${pill(getEst(r))}</td>
-        <td class="td-muted" title="${esc(r[C.PRODUCTO])}">${r[C.PRODUCTO]||'—'}</td>
-        <td class="td-muted" title="${esc(r[C.TIPO_ORDEN])}">${r[C.TIPO_ORDEN]||'—'}</td>
-        <td class="td-muted" title="${esc(r[C.SUCURSAL])}">${r[C.SUCURSAL]||'—'}</td>
+        <td class="td-muted" data-tip="${esc(r[C.PRODUCTO])}">${r[C.PRODUCTO]||'—'}</td>
+        <td class="td-muted" data-tip="${esc(r[C.TIPO_ORDEN])}">${r[C.TIPO_ORDEN]||'—'}</td>
+        <td class="td-muted" data-tip="${esc(r[C.SUCURSAL])}">${r[C.SUCURSAL]||'—'}</td>
         <td class="td-num" style="color:#e8f0ff">${fmtDate(r[C.FE_PLAN])}</td>
         <td>${abDias(dG)}</td>
-        <td style="font-size:13px;color:var(--amarillo)" title="${esc(r[C.MOTIVO])}">${r[C.MOTIVO]||'—'}</td>
-        <td class="td-muted" title="${esc(r[C.CONTRATO])}">${r[C.CONTRATO]||'—'}</td>
-        <td class="td-muted" title="${esc(r[C.VENDEDOR])}">${r[C.VENDEDOR]||'—'}</td>
+        <td style="font-size:13px;color:var(--amarillo)" data-tip="${esc(r[C.MOTIVO])}">${r[C.MOTIVO]||'—'}</td>
+        <td class="td-muted" data-tip="${esc(r[C.CONTRATO])}">${r[C.CONTRATO]||'—'}</td>
+        <td class="td-muted" data-tip="${esc(r[C.VENDEDOR])}">${r[C.VENDEDOR]||'—'}</td>
       </tr>`;
     }).join('');
 
@@ -1177,10 +1180,10 @@ function renderAlertaTabla(tbl){
     if(isGest){
       return`<tr>
         <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
-        <td style="font-weight:700;color:var(--turquesa);max-width:160px;overflow:hidden;text-overflow:ellipsis;font-size:14px" title="${esc(ges)}">${ges}</td>
-        <td class="td-login" title="${esc(login)}">${login}</td>
-        <td class="td-client" title="${esc(cli)}">${cli}</td>
-        <td class="td-muted" title="${esc(prod)}">${prod}</td>
+        <td style="font-weight:700;color:var(--turquesa);max-width:160px;overflow:hidden;text-overflow:ellipsis;font-size:14px" data-tip="${esc(ges)}">${ges}</td>
+        <td class="td-login" data-tip="${esc(login)}">${login}</td>
+        <td class="td-client" data-tip="${esc(cli)}">${cli}</td>
+        <td class="td-muted" data-tip="${esc(prod)}">${prod}</td>
         <td>${pill(getEst(r))}</td>
         <td class="td-num">${fmtDate(r[C.FE_PLAN])}</td>
         <td>${abDias(r._dG)}</td>
@@ -1190,10 +1193,10 @@ function renderAlertaTabla(tbl){
     } else {
       return`<tr>
         <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
-        <td style="font-weight:700;color:var(--turquesa);max-width:160px;overflow:hidden;text-overflow:ellipsis;font-size:14px" title="${esc(ges)}">${ges}</td>
-        <td class="td-login" title="${esc(login)}">${login}</td>
-        <td class="td-client" title="${esc(cli)}">${cli}</td>
-        <td class="td-muted" title="${esc(prod)}">${prod}</td>
+        <td style="font-weight:700;color:var(--turquesa);max-width:160px;overflow:hidden;text-overflow:ellipsis;font-size:14px" data-tip="${esc(ges)}">${ges}</td>
+        <td class="td-login" data-tip="${esc(login)}">${login}</td>
+        <td class="td-client" data-tip="${esc(cli)}">${cli}</td>
+        <td class="td-muted" data-tip="${esc(prod)}">${prod}</td>
         <td>${pill(getEst(r))}</td>
         <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
         <td>${abSol(r._dS)}</td>
@@ -1405,18 +1408,18 @@ function renderGcRows(rows){
     return`<tr>
       <td class="td-num">${i+1}</td>
       <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
-      <td class="td-muted" title="${esc(r[C.EMPRESA])}">${r[C.EMPRESA]||'—'}</td>
-      <td class="td-login" style="font-weight:400;font-size:13px" title="${esc(r[C.LOGIN])}">${r[C.LOGIN]||'—'}</td>
-      <td class="td-client" title="${esc(r[C.CLIENTE])}">${r[C.CLIENTE]||'—'}</td>
+      <td class="td-muted" data-tip="${esc(r[C.EMPRESA])}">${r[C.EMPRESA]||'—'}</td>
+      <td class="td-login" style="font-weight:400;font-size:13px" data-tip="${esc(r[C.LOGIN])}">${r[C.LOGIN]||'—'}</td>
+      <td class="td-client" data-tip="${esc(r[C.CLIENTE])}">${r[C.CLIENTE]||'—'}</td>
       <td>${pill(getEst(r))}</td>
-      <td class="td-muted" title="${esc(r[C.PRODUCTO])}">${r[C.PRODUCTO]||'—'}</td>
-      <td class="td-muted" title="${esc(r[C.TIPO_ORDEN])}">${r[C.TIPO_ORDEN]||'—'}</td>
-      <td class="td-muted" title="${esc(r[C.SUCURSAL])}">${r[C.SUCURSAL]||'—'}</td>
+      <td class="td-muted" data-tip="${esc(r[C.PRODUCTO])}">${r[C.PRODUCTO]||'—'}</td>
+      <td class="td-muted" data-tip="${esc(r[C.TIPO_ORDEN])}">${r[C.TIPO_ORDEN]||'—'}</td>
+      <td class="td-muted" data-tip="${esc(r[C.SUCURSAL])}">${r[C.SUCURSAL]||'—'}</td>
       <td class="td-num" style="color:#e8f0ff">${fmtDate(r[C.FE_PLAN])}</td>
       <td>${abDias(dG)}</td>
-      <td style="font-size:13px;color:var(--amarillo)" title="${esc(r[C.MOTIVO])}">${r[C.MOTIVO]||'—'}</td>
-      <td class="td-muted" title="${esc(r[C.CONTRATO])}">${r[C.CONTRATO]||'—'}</td>
-      <td class="td-muted" title="${esc(r[C.VENDEDOR])}">${r[C.VENDEDOR]||'—'}</td>
+      <td style="font-size:13px;color:var(--amarillo)" data-tip="${esc(r[C.MOTIVO])}">${r[C.MOTIVO]||'—'}</td>
+      <td class="td-muted" data-tip="${esc(r[C.CONTRATO])}">${r[C.CONTRATO]||'—'}</td>
+      <td class="td-muted" data-tip="${esc(r[C.VENDEDOR])}">${r[C.VENDEDOR]||'—'}</td>
     </tr>`;
   }).join('')||'<tr><td colspan="15" class="empty">Sin órdenes activas</td></tr>';
 }
@@ -1586,20 +1589,20 @@ function renderDetalleTabla(){
       return`<tr>
         <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
         <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
-        <td class="td-muted" title="${esc(r[C.EMPRESA])}">${r[C.EMPRESA]||'—'}</td>
-        <td class="td-login" title="${esc(r[C.LOGIN])}">${r[C.LOGIN]||'—'}</td>
-        <td class="td-client" title="${esc(r[C.CLIENTE])}">${r[C.CLIENTE]||'—'}</td>
+        <td class="td-muted" data-tip="${esc(r[C.EMPRESA])}">${r[C.EMPRESA]||'—'}</td>
+        <td class="td-login" data-tip="${esc(r[C.LOGIN])}">${r[C.LOGIN]||'—'}</td>
+        <td class="td-client" data-tip="${esc(r[C.CLIENTE])}">${r[C.CLIENTE]||'—'}</td>
         <td>${pill(getEst(r))}</td>
-        <td class="td-muted" title="${esc(r[C.PRODUCTO])}">${r[C.PRODUCTO]||'—'}</td>
-        <td class="td-muted" title="${esc(r[C.TIPO_ORDEN])}">${r[C.TIPO_ORDEN]||'—'}</td>
-        <td class="td-muted" title="${esc(r[C.SUCURSAL])}">${r[C.SUCURSAL]||'—'}</td>
+        <td class="td-muted" data-tip="${esc(r[C.PRODUCTO])}">${r[C.PRODUCTO]||'—'}</td>
+        <td class="td-muted" data-tip="${esc(r[C.TIPO_ORDEN])}">${r[C.TIPO_ORDEN]||'—'}</td>
+        <td class="td-muted" data-tip="${esc(r[C.SUCURSAL])}">${r[C.SUCURSAL]||'—'}</td>
         <td class="td-num">${fmtDate(r[C.FE_PLAN])}</td>
         <td>${abDias(dG)}</td>
-        <td class="td-obs" title="${esc(r[C.OBS_PLAN]||'')}">${obs1}</td>
-        <td style="font-size:14px;color:var(--amarillo)" title="${esc(r[C.MOTIVO])}">${r[C.MOTIVO]||'—'}</td>
-        <td class="td-obs" title="${esc(r[C.OBS_REPLAN]||'')}">${obs2}</td>
-        <td class="td-muted" title="${esc(r[C.CONTRATO])}">${r[C.CONTRATO]||'—'}</td>
-        <td class="td-muted" title="${esc(r[C.VENDEDOR])}">${r[C.VENDEDOR]||'—'}</td>
+        <td class="td-obs" data-tip="${esc(r[C.OBS_PLAN]||'')}">${obs1}</td>
+        <td style="font-size:14px;color:var(--amarillo)" data-tip="${esc(r[C.MOTIVO])}">${r[C.MOTIVO]||'—'}</td>
+        <td class="td-obs" data-tip="${esc(r[C.OBS_REPLAN]||'')}">${obs2}</td>
+        <td class="td-muted" data-tip="${esc(r[C.CONTRATO])}">${r[C.CONTRATO]||'—'}</td>
+        <td class="td-muted" data-tip="${esc(r[C.VENDEDOR])}">${r[C.VENDEDOR]||'—'}</td>
       </tr>`;
     }).join(''):
     '<tr><td colspan="16" class="empty">Sin órdenes para este filtro</td></tr>';
@@ -1812,9 +1815,7 @@ async function loadAll(){
   populateSel('sf-estado', allData.map(r=>getEst(r)).filter(v=>ESTADOS_OK.includes(v)));
   populateSel('sf-empresa',allData.map(r=>r[C.EMPRESA]));
   populateSel('sf-enlace', allData.map(r=>r[C.ENLACE]));
-  // Corte: orden descendente (más reciente primero)
-  const fechasDesc=[...new Set(allData.map(r=>r._fecha).filter(Boolean))].sort().reverse();
-  if(SF['sf-fecha']){SF['sf-fecha'].all=fechasDesc;sfRenderList('sf-fecha','');sfRenderChips('sf-fecha');}
+  populateSel('sf-fecha',  allData.map(r=>r._fecha), true);
   populateSel('sf-login',  allData.map(r=>r[C.LOGIN]));
 
   filtered=[...allData];
