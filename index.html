@@ -207,6 +207,15 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
 
 .sf-opt.dim{opacity:.45}
 .sf-opt.dim:hover{opacity:.85}
+
+/* ── SORTABLE TABLE HEADERS ── */
+thead th.sortable{cursor:pointer;user-select:none;transition:color .15s,background .15s;position:relative;padding-right:22px!important}
+thead th.sortable:hover{color:#fff;background:rgba(0,176,240,.08)}
+thead th.sortable::after{content:'⇅';position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;opacity:.35;transition:opacity .15s}
+thead th.sortable.sort-asc::after{content:'↑';opacity:1;color:var(--turquesa)}
+thead th.sortable.sort-desc::after{content:'↓';opacity:1;color:var(--turquesa)}
+thead th.sortable.sort-asc,thead th.sortable.sort-desc{color:var(--turquesa)}
+.gc-detail thead th.sortable{padding-right:20px!important}
 </style>
 </head>
 <body>
@@ -216,7 +225,7 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
   <div class="header-left">
     <div class="logo-badge">PEI</div>
     <div class="header-titles">
-      <h1>Dashboard Ejecutivo · <span style="color:var(--turquesa)">Órdenes PEI</span></h1>
+      <h1>Dashboard Ejecutivo · <span style="color:var(--turquesa)">Órdenes PYL</span></h1>
       <p>Proyectos e Implementación · Gestión de Pendientes</p>
     </div>
   </div>
@@ -356,11 +365,22 @@ footer{font-size:10px;color:var(--muted);text-align:center;padding:1rem 36px;let
         <div class="tbl-scroll">
           <table id="tbl-detalle">
             <thead><tr>
-              <th>#</th><th>Fec. Solicitud</th><th>Tipo Empresa</th><th>Login</th><th>Cliente</th>
-              <th>Estado Servicio</th><th>Producto</th><th>Tipo Orden</th>
-              <th>Téc. Sucursal</th><th>FE Últ Plan</th><th>Días sin gestión</th>
-              <th>Obs Últ Plan</th><th>Motivo</th><th>Obs Replanif.</th>
-              <th>Est. Contrato</th><th>Vendedor</th>
+              <th>#</th>
+              <th class="sortable" data-col="FECHA_SOL" onclick="sortDetalle(this)">Fec. Solicitud</th>
+              <th class="sortable" data-col="EMPRESA" onclick="sortDetalle(this)">Tipo Empresa</th>
+              <th class="sortable" data-col="LOGIN" onclick="sortDetalle(this)">Login</th>
+              <th class="sortable" data-col="CLIENTE" onclick="sortDetalle(this)">Cliente</th>
+              <th class="sortable" data-col="EST" onclick="sortDetalle(this)">Estado Servicio</th>
+              <th class="sortable" data-col="PRODUCTO" onclick="sortDetalle(this)">Producto</th>
+              <th class="sortable" data-col="TIPO_ORDEN" onclick="sortDetalle(this)">Tipo Orden</th>
+              <th class="sortable" data-col="SUCURSAL" onclick="sortDetalle(this)">Téc. Sucursal</th>
+              <th class="sortable" data-col="FE_PLAN" onclick="sortDetalle(this)">FE Últ Plan</th>
+              <th class="sortable" data-col="DIAS" onclick="sortDetalle(this)">Días sin gestión</th>
+              <th>Obs Últ Plan</th>
+              <th class="sortable" data-col="MOTIVO" onclick="sortDetalle(this)">Motivo</th>
+              <th>Obs Replanif.</th>
+              <th class="sortable" data-col="CONTRATO" onclick="sortDetalle(this)">Est. Contrato</th>
+              <th class="sortable" data-col="VENDEDOR" onclick="sortDetalle(this)">Vendedor</th>
             </tr></thead>
             <tbody id="tbl-detalle-body"><tr><td colspan="16" class="empty">Selecciona un gestor en el gráfico</td></tr></tbody>
           </table>
@@ -471,8 +491,6 @@ const KNOWN_SHEETS = [
   {fecha:'20-05-26',gid:1609901699},
   {fecha:'21-05-26',gid:629799442},
   {fecha:'22-05-26',gid:482320858},
-  {fecha:'23-05-26',gid:740944381},
-  {fecha:'25-05-26',gid:2146316860},
   // ▼ AGREGAR NUEVAS HOJAS AQUÍ ▼
   // { fecha: 'DD-MM-YY', gid: PEGAR_GID_AQUI },
 ];
@@ -950,6 +968,9 @@ function renderGestores(){
       </tr>`;
     }).join('');
 
+    // Guardar filas en cache para ordenamiento posterior
+    _gcDetailRowsCache[uid]=detRows;
+
     // Cortes únicos presentes en este gestor (para info)
     const cortesGestor=[...new Set(detRows.map(r=>r._fecha))].sort().join(', ');
 
@@ -988,12 +1009,22 @@ function renderGestores(){
       <div class="gc-detail" id="det-${uid}">
         <table>
           <thead><tr>
-            <th>#</th><th>Fec. Solicitud</th><th>Tipo Empresa</th><th>Login</th><th>Cliente</th>
-            <th>Estado Servicio</th><th>Producto</th><th>Tipo Orden</th>
-            <th>Téc. Sucursal</th><th>FE Últ Plan</th><th>Días sin gestión</th>
-            <th>Motivo</th><th>Est. Contrato</th><th>Vendedor</th>
+            <th>#</th>
+            <th class="sortable" onclick="sortGcDetail(this,${uid},'FECHA_SOL')">Fec. Solicitud</th>
+            <th class="sortable" onclick="sortGcDetail(this,${uid},'EMPRESA')">Tipo Empresa</th>
+            <th class="sortable" onclick="sortGcDetail(this,${uid},'LOGIN')">Login</th>
+            <th class="sortable" onclick="sortGcDetail(this,${uid},'CLIENTE')">Cliente</th>
+            <th class="sortable" onclick="sortGcDetail(this,${uid},'EST')">Estado Servicio</th>
+            <th class="sortable" onclick="sortGcDetail(this,${uid},'PRODUCTO')">Producto</th>
+            <th class="sortable" onclick="sortGcDetail(this,${uid},'TIPO_ORDEN')">Tipo Orden</th>
+            <th class="sortable" onclick="sortGcDetail(this,${uid},'SUCURSAL')">Téc. Sucursal</th>
+            <th class="sortable" onclick="sortGcDetail(this,${uid},'FE_PLAN')">FE Últ Plan</th>
+            <th class="sortable" onclick="sortGcDetail(this,${uid},'DIAS')">Días sin gestión</th>
+            <th class="sortable" onclick="sortGcDetail(this,${uid},'MOTIVO')">Motivo</th>
+            <th class="sortable" onclick="sortGcDetail(this,${uid},'CONTRATO')">Est. Contrato</th>
+            <th class="sortable" onclick="sortGcDetail(this,${uid},'VENDEDOR')">Vendedor</th>
           </tr></thead>
-          <tbody>${detalleFilas||'<tr><td colspan="15" class="empty">Sin órdenes activas</td></tr>'}</tbody>
+          <tbody id="gc-body-${uid}">${detalleFilas||'<tr><td colspan="15" class="empty">Sin órdenes activas</td></tr>'}</tbody>
         </table>
       </div>
     </div>`;
@@ -1124,6 +1155,116 @@ function renderResumen(){
 let _gestorSeleccionado=null;
 let _detalleEstadoFil='all';
 let _gestorMapCache={};
+let _detalleSortCol=null;   // null = orden por defecto (estado+días)
+let _detalleSortDir='asc';  // 'asc' | 'desc'
+
+function sortDetalle(th){
+  const col=th.dataset.col;
+  // toggle dirección si es la misma columna, sino asc
+  if(_detalleSortCol===col){
+    _detalleSortDir=_detalleSortDir==='asc'?'desc':'asc';
+  } else {
+    _detalleSortCol=col;
+    _detalleSortDir='asc';
+  }
+  // actualizar clases visuales en todos los th
+  th.closest('thead').querySelectorAll('th.sortable').forEach(h=>{
+    h.classList.remove('sort-asc','sort-desc');
+  });
+  th.classList.add(_detalleSortDir==='asc'?'sort-asc':'sort-desc');
+  renderDetalleTabla();
+}
+
+function applyDetalleSort(rows){
+  if(!_detalleSortCol){
+    // orden por defecto: estado luego días sin gestión desc
+    const estOrd={Planificada:0,Detenido:1,Replanificada:2,AsignadoTarea:3};
+    return [...rows].sort((a,b)=>{
+      const eo=(estOrd[getEst(a)]??9)-(estOrd[getEst(b)]??9);
+      return eo!==0?eo:(diasDesde(b[C.FE_PLAN])||0)-(diasDesde(a[C.FE_PLAN])||0);
+    });
+  }
+  const dir=_detalleSortDir==='asc'?1:-1;
+  return [...rows].sort((a,b)=>{
+    let va,vb;
+    if(_detalleSortCol==='DIAS'){
+      va=diasDesde(a[C.FE_PLAN])??-Infinity;
+      vb=diasDesde(b[C.FE_PLAN])??-Infinity;
+      return(va-vb)*dir;
+    }
+    if(_detalleSortCol==='FECHA_SOL'||_detalleSortCol==='FE_PLAN'){
+      const key=_detalleSortCol==='FECHA_SOL'?C.FECHA_SOL:C.FE_PLAN;
+      va=parseDate(a[key])?.getTime()??0;
+      vb=parseDate(b[key])?.getTime()??0;
+      return(va-vb)*dir;
+    }
+    const keyMap={EST:C.EST,EMPRESA:C.EMPRESA,LOGIN:C.LOGIN,CLIENTE:C.CLIENTE,
+                  PRODUCTO:C.PRODUCTO,TIPO_ORDEN:C.TIPO_ORDEN,SUCURSAL:C.SUCURSAL,
+                  MOTIVO:C.MOTIVO,CONTRATO:C.CONTRATO,VENDEDOR:C.VENDEDOR};
+    const k=keyMap[_detalleSortCol];
+    va=(a[k]||'').toLowerCase();
+    vb=(b[k]||'').toLowerCase();
+    return va<vb?-dir:va>vb?dir:0;
+  });
+}
+
+// ── SORT PARA TABLAS EXPANDIBLES DE GESTOR ─────────────────────────────
+const _gcDetailRowsCache={};
+const _gcDetailSortState={};
+
+function sortGcDetail(th,uid,col){
+  const state=_gcDetailSortState[uid]||{col:null,dir:'asc'};
+  if(state.col===col){state.dir=state.dir==='asc'?'desc':'asc';}
+  else{state.col=col;state.dir='asc';}
+  _gcDetailSortState[uid]=state;
+  th.closest('thead').querySelectorAll('th.sortable').forEach(h=>h.classList.remove('sort-asc','sort-desc'));
+  th.classList.add(state.dir==='asc'?'sort-asc':'sort-desc');
+  const rows=_gcDetailRowsCache[uid]||[];
+  document.getElementById('gc-body-'+uid).innerHTML=renderGcRows(applyGcSort(rows,col,state.dir));
+}
+
+function applyGcSort(rows,col,dir){
+  const d=dir==='asc'?1:-1;
+  return [...rows].sort((a,b)=>{
+    if(col==='DIAS'){
+      const va=diasDesde(a[C.FE_PLAN])??-Infinity;
+      const vb=diasDesde(b[C.FE_PLAN])??-Infinity;
+      return(va-vb)*d;
+    }
+    if(col==='FECHA_SOL'||col==='FE_PLAN'){
+      const k=col==='FECHA_SOL'?C.FECHA_SOL:C.FE_PLAN;
+      return((parseDate(a[k])?.getTime()??0)-(parseDate(b[k])?.getTime()??0))*d;
+    }
+    const keyMap={EST:C.EST,EMPRESA:C.EMPRESA,LOGIN:C.LOGIN,CLIENTE:C.CLIENTE,
+      PRODUCTO:C.PRODUCTO,TIPO_ORDEN:C.TIPO_ORDEN,SUCURSAL:C.SUCURSAL,
+      MOTIVO:C.MOTIVO,CONTRATO:C.CONTRATO,VENDEDOR:C.VENDEDOR};
+    const va=(a[keyMap[col]]||'').toLowerCase();
+    const vb=(b[keyMap[col]]||'').toLowerCase();
+    return va<vb?-d:va>vb?d:0;
+  });
+}
+
+function renderGcRows(rows){
+  return rows.map((r,i)=>{
+    const dG=diasDesde(r[C.FE_PLAN]);
+    return`<tr>
+      <td class="td-num">${i+1}</td>
+      <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
+      <td class="td-muted">${r[C.EMPRESA]||'—'}</td>
+      <td class="td-login" style="font-weight:400;font-size:13px">${r[C.LOGIN]||'—'}</td>
+      <td class="td-client">${r[C.CLIENTE]||'—'}</td>
+      <td>${pill(getEst(r))}</td>
+      <td class="td-muted">${r[C.PRODUCTO]||'—'}</td>
+      <td class="td-muted">${r[C.TIPO_ORDEN]||'—'}</td>
+      <td class="td-muted">${r[C.SUCURSAL]||'—'}</td>
+      <td class="td-num" style="color:#e8f0ff">${fmtDate(r[C.FE_PLAN])}</td>
+      <td>${abDias(dG)}</td>
+      <td style="font-size:13px;color:var(--amarillo)">${r[C.MOTIVO]||'—'}</td>
+      <td class="td-muted">${r[C.CONTRATO]||'—'}</td>
+      <td class="td-muted">${r[C.VENDEDOR]||'—'}</td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="15" class="empty">Sin órdenes activas</td></tr>';
+}
 
 // Sin deduplicación: el gráfico refleja exactamente los registros de filtered
 function renderTopGestores(){
@@ -1243,6 +1384,8 @@ function renderTopGestores(){
 function cargarDetalleGestor(nombre){
   _gestorSeleccionado=nombre;
   _detalleEstadoFil='all';
+  _detalleSortCol=null;
+  _detalleSortDir='asc';
   const wrap=document.getElementById('detalle-gestor-wrap');
   wrap.style.display='';
   document.getElementById('detalle-gestor-nombre').textContent=nombre;
@@ -1275,11 +1418,7 @@ function renderDetalleTabla(){
   let rows=d.rows.filter(tieneCarga);
   if(_detalleEstadoFil!=='all')rows=rows.filter(r=>getEst(r)===_detalleEstadoFil);
 
-  const estOrd={Planificada:0,Detenido:1,Replanificada:2,AsignadoTarea:3};
-  rows.sort((a,b)=>{
-    const eo=(estOrd[getEst(a)]??9)-(estOrd[getEst(b)]??9);
-    return eo!==0?eo:(diasDesde(b[C.FE_PLAN])||0)-(diasDesde(a[C.FE_PLAN])||0);
-  });
+  rows=applyDetalleSort(rows);
 
   document.getElementById('detalle-count').textContent=
     `${rows.length} ÓRDENES · GESTOR: ${_gestorSeleccionado.toUpperCase()}`;
@@ -1313,6 +1452,11 @@ function renderDetalleTabla(){
 
 function setDetalleEstado(e){
   _detalleEstadoFil=e;
+  _detalleSortCol=null;
+  _detalleSortDir='asc';
+  // limpiar indicadores visuales de sort
+  const thead=document.querySelector('#tbl-detalle thead');
+  if(thead)thead.querySelectorAll('th.sortable').forEach(h=>h.classList.remove('sort-asc','sort-desc'));
   renderDetalleTabla();
 }
 
