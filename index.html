@@ -529,8 +529,8 @@ const KNOWN_SHEETS = [
   {fecha:'20-05-26',gid:1609901699},
   {fecha:'21-05-26',gid:629799442},
   {fecha:'22-05-26',gid:482320858},
-  {fecha:'23-05-26',gid:740944381},
-  {fecha:'25-05-26',gid:2146316860},
+     {fecha:'23-05-26',gid:740944381},
+     {fecha:'25-05-26',gid:2146316860},
 
   // ▼ AGREGAR NUEVAS HOJAS AQUÍ ▼
   // { fecha: 'DD-MM-YY', gid: PEGAR_GID_AQUI },
@@ -1028,18 +1028,18 @@ function renderGestores(){
       return`<tr>
         <td class="td-num">${i+1}</td>
         <td class="td-num">${fmtDate(r[C.FECHA_SOL])}</td>
-        <td class="td-muted">${r[C.EMPRESA]||'—'}</td>
-        <td class="td-login" style="font-weight:400;font-size:13px">${r[C.LOGIN]||'—'}</td>
-        <td class="td-client">${r[C.CLIENTE]||'—'}</td>
+        <td class="td-muted" title="${esc(r[C.EMPRESA])}">${r[C.EMPRESA]||'—'}</td>
+        <td class="td-login" style="font-weight:400;font-size:13px" title="${esc(r[C.LOGIN])}">${r[C.LOGIN]||'—'}</td>
+        <td class="td-client" title="${esc(r[C.CLIENTE])}">${r[C.CLIENTE]||'—'}</td>
         <td>${pill(getEst(r))}</td>
-        <td class="td-muted">${r[C.PRODUCTO]||'—'}</td>
-        <td class="td-muted">${r[C.TIPO_ORDEN]||'—'}</td>
-        <td class="td-muted">${r[C.SUCURSAL]||'—'}</td>
+        <td class="td-muted" title="${esc(r[C.PRODUCTO])}">${r[C.PRODUCTO]||'—'}</td>
+        <td class="td-muted" title="${esc(r[C.TIPO_ORDEN])}">${r[C.TIPO_ORDEN]||'—'}</td>
+        <td class="td-muted" title="${esc(r[C.SUCURSAL])}">${r[C.SUCURSAL]||'—'}</td>
         <td class="td-num" style="color:#e8f0ff">${fmtDate(r[C.FE_PLAN])}</td>
         <td>${abDias(dG)}</td>
-        <td style="font-size:13px;color:var(--amarillo)">${r[C.MOTIVO]||'—'}</td>
-        <td class="td-muted">${r[C.CONTRATO]||'—'}</td>
-        <td class="td-muted">${r[C.VENDEDOR]||'—'}</td>
+        <td style="font-size:13px;color:var(--amarillo)" title="${esc(r[C.MOTIVO])}">${r[C.MOTIVO]||'—'}</td>
+        <td class="td-muted" title="${esc(r[C.CONTRATO])}">${r[C.CONTRATO]||'—'}</td>
+        <td class="td-muted" title="${esc(r[C.VENDEDOR])}">${r[C.VENDEDOR]||'—'}</td>
       </tr>`;
     }).join('');
 
@@ -1812,7 +1812,9 @@ async function loadAll(){
   populateSel('sf-estado', allData.map(r=>getEst(r)).filter(v=>ESTADOS_OK.includes(v)));
   populateSel('sf-empresa',allData.map(r=>r[C.EMPRESA]));
   populateSel('sf-enlace', allData.map(r=>r[C.ENLACE]));
-  populateSel('sf-fecha',  allData.map(r=>r._fecha));
+  // Corte: orden descendente (más reciente primero)
+  const fechasDesc=[...new Set(allData.map(r=>r._fecha).filter(Boolean))].sort().reverse();
+  if(SF['sf-fecha']){SF['sf-fecha'].all=fechasDesc;sfRenderList('sf-fecha','');sfRenderChips('sf-fecha');}
   populateSel('sf-login',  allData.map(r=>r[C.LOGIN]));
 
   filtered=[...allData];
