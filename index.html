@@ -260,6 +260,12 @@ thead th.sortable.sort-asc,thead th.sortable.sort-desc{color:var(--turquesa)}
 
 <!-- FILTERS -->
 <div class="filter-bar">
+  <span class="filter-label">Grupo</span>
+  <div class="sf-wrap" id="sf-grupo"></div>
+  <div class="filter-sep"></div>
+  <span class="filter-label">Tipo Gestión</span>
+  <div class="sf-wrap" id="sf-tipo-gestion"></div>
+  <div class="filter-sep"></div>
   <span class="filter-label">Gestor</span>
   <div class="sf-wrap" id="sf-gestor"></div>
   <div class="filter-sep"></div>
@@ -444,6 +450,25 @@ thead th.sortable.sort-asc,thead th.sortable.sort-desc{color:var(--turquesa)}
   <!-- TAB ANALISIS -->
   <div id="tab-analisis" style="display:none">
     <div class="section-title"><span class="dot-sec"></span>Análisis General</div>
+
+    <!-- ── RESUMEN POR TIPO GESTIÓN ── -->
+    <div class="tbl-card" style="margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div>
+          <div class="card-title" style="margin:0 0 2px"><span class="dot-sec" style="background:#34D399"></span>Resumen por Tipo de Gestión</div>
+          <div style="font-size:11px;color:var(--muted)">Carga activa segmentada por tipo · Plan+Det+Replan+Asig</div>
+        </div>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Tipo Gestión</th><th>Carga total</th>
+          <th>Planificada</th><th>Detenido</th><th>Replanificada</th><th>AsignadoTarea</th>
+          <th>Gestores</th><th>Clientes</th>
+        </tr></thead>
+        <tbody id="tbl-tipo-gestion"></tbody>
+      </table>
+    </div>
+
     <div class="charts-grid">
       <div class="chart-card">
         <div class="card-title"><span class="dot-sec"></span>Top Gestores por Carga</div>
@@ -480,14 +505,20 @@ thead th.sortable.sort-asc,thead th.sortable.sort-desc{color:var(--turquesa)}
       </div>
       <div style="position:relative;height:220px"><canvas id="ch-tend"></canvas></div>
     </div>
+
+    <!-- ── DETALLE POR GESTOR ── -->
     <div class="section-title"><span class="dot-sec"></span>Detalle Consolidado por Gestor</div>
     <div class="tbl-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <span style="font-size:11px;color:var(--muted)">Resumen de carga activa por gestor — sin deduplicación, datos exactos del Sheets</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <span style="font-size:11px;color:var(--muted)">Resumen de carga activa por gestor — segmentado por Equipo y Tipo Gestión</span>
         <span id="tbl-count" style="font-size:10px;color:var(--muted);font-family:var(--font-cond);letter-spacing:1px"></span>
       </div>
       <table>
-        <thead><tr><th>#</th><th>Gestor</th><th>Carga total</th><th>Planificada</th><th>Detenido</th><th>Replanificada</th><th>AsignadoTarea</th><th>Clientes</th><th>Últ. Plan</th></tr></thead>
+        <thead><tr>
+          <th>#</th><th>Gestor</th><th>Equipo</th><th>Tipo Gestión</th>
+          <th>Carga total</th><th>Planificada</th><th>Detenido</th>
+          <th>Replanificada</th><th>AsignadoTarea</th><th>Clientes</th><th>Últ. Plan</th>
+        </tr></thead>
         <tbody id="tbl-resumen"></tbody>
       </table>
     </div>
@@ -527,10 +558,8 @@ const KNOWN_SHEETS = [
   {fecha:'22-05-26',gid:482320858},
   {fecha:'23-05-26',gid:740944381},
   {fecha:'25-05-26',gid:2146316860},
-  {fecha:'26-05-26',gid:1225197960},
-  {fecha:'27-05-26',gid:1146772173},
-
-
+     {fecha:'26-05-26',gid:1225197960},
+     {fecha:'27-05-26',gid:1146772173},
   // ▼ AGREGAR NUEVAS HOJAS AQUÍ ▼
   // { fecha: 'DD-MM-YY', gid: PEGAR_GID_AQUI },
 ];
@@ -552,7 +581,59 @@ const C={
   OBS_PLAN:'OBS_ULT_PLAN',
   OBS_REPLAN:'ULT_OBS_REPLANIFICADA',
   CONTRATO:'ESTADO_CONTRATO',
-  VENDEDOR:'VENDEDOR'
+  VENDEDOR:'VENDEDOR',
+  GRUPO:'_grupo',
+  EQUIPO:'_equipo',
+  TIPO_GESTION:'_tipo_gestion'
+};
+
+// Mapa GESTOR → GRUPO / EQUIPO / TIPO_GESTIÓN (fuente: LISTADO_PERSONAL_PEI_POR_GRUPOS)
+const PERSONAL_MAP={
+  "WENDY PRISCILLA SALAZAR SALAZAR":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "MELANY YULEISY DELGADO VELIZ":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "SILVIA VALERIA ORTIZ GRANDA":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "MERY STEPHANIE PALMA VARGAS":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "VERONICA MELINA CARRILLO QUEZADA":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "SORAYA LISSETTE VACACELA DE LA A":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "SULAY KATHERINE BAQUE ALLAUCA":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "DAYLIN JOYCE VERA CARDENAS":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Ejecución","tipo":"PROYECTOS"},
+  "DAISY TATIANA URBANO VALVERDE":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "MELANY ARACELY OROZCO VEGA":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "MILTON ALFREDO MARTINEZ VERGARA":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Ejecución","tipo":"PROYECTOS"},
+  "ROMINA ALEXANDRA ACOSTA MATO":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "GABRIELA FERNANDA GAVILANEZ PERRAZO":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "ALEXIS DAVID ONATE CAMPANA":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "ANA BEATRIZ GUALLPA PARRA":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Ejecución","tipo":"PROYECTOS"},
+  "ERIKA ALEXANDRA LOPEZ TOAPANTA":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "VICTOR MANUEL TACURI ORDONEZ":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Ejecución","tipo":"PROYECTOS"},
+  "MAURICIO JAVIER MAYORGA TULCAN":{"grupo":"OTROS","equipo":"OTROS","tipo":"OTROS"},
+  "JERSON RODRIGO CAMALLE VASQUEZ":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Ejecución","tipo":"PROYECTOS"},
+  "VERONICA LUCIA CRUZ CARGUA":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "ANTONY SAMUEL QUIMI BALCAZAR":{"grupo":"OTROS","equipo":"OTROS","tipo":"OTROS"},
+  "PABLO MAURICIO LUNA VALENCIA":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Ejecución","tipo":"PROYECTOS"},
+  "WILSON GABRIEL ROJAS CADME":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "WENDY DENISSE GAONA BARBA":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "GERARDO DAVID CHIMBOLEMA GAMBOA":{"grupo":"OTROS","equipo":"OTROS","tipo":"OTROS"},
+  "STALIN ALFONSO GARCIA TOSCANO":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Ejecución","tipo":"PROYECTOS"},
+  "GABRIELA STEPHANIE MINA MORAN":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "MIRIAN CECILIA VALDEZ MORA":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Ejecución","tipo":"PROYECTOS"},
+  "JHORDY KRISTOFER LEON GAONA":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Ejecución","tipo":"PROYECTOS"},
+  "CHRISTIAN DAVID ALMEIDA CHICAIZA":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "LUIS ALBERTO GAIBOR NOBOA":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Ejecución","tipo":"PROYECTOS"},
+  "KAREN GABRIELA CORREA ULLON":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Ejecución","tipo":"PROYECTOS"},
+  "ESTEFANIA PAOLA CHILUIZA CHAVEZ":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Ejecución","tipo":"PROYECTOS"},
+  "STEPHANO NICOLAS TORRES NOBOA":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Ejecución","tipo":"PROYECTOS"},
+  "FLOR ESTHER MORAN MUNOZ":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Ejecución","tipo":"PROYECTOS"},
+  "MICHAEL DAVID CAMACHO SEVILLA":{"grupo":"OTROS","equipo":"OTROS","tipo":"OTROS"},
+  "JULIO CESAR CORREA ROJAS":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Ejecución","tipo":"PROYECTOS"},
+  "LOURDES ESTEFANY OVIEDO ZAMBRANO":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "PEDRO JONATHAN SANCHEZ CAJAMARCA":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Ejecución","tipo":"PROYECTOS"},
+  "KAREN MARIANELLA HERRERA CANIZARES":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "JOSSELINE MADELAYNE FONSECA MAYORGA":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Ejecución","tipo":"PROYECTOS"},
+  "LIZARDO MARCELO ESCANDON RUGEL":{"grupo":"OTROS","equipo":"OTROS","tipo":"OTROS"},
+  "JEFFERSON CLINTON TOROCHE TENELEMA":{"grupo":"OTROS","equipo":"OTROS","tipo":"OTROS"},
+  "CHRISTIAN ENRIQUE VALAREZO CARPIO":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Planificación","tipo":"OPERATIVO"},
+  "GABRIELA STEFANIA JARA ESPINOZA":{"grupo":"PROYECTOS CORPORATIVOS","equipo":"Ejecución","tipo":"PROYECTOS"}
 };
 
 const PALETTE=['#00B0F0','#FF44B0','#FF6F42','#FFA700','#8B6FE8','#6EBEEB','#34D399','#FF9A44','#AA7FD0','#64B4F5'];
@@ -878,6 +959,8 @@ function sfGetVals(id){
 }
 
 function initFilters(){
+  sfCreate('sf-grupo','Todos');
+  sfCreate('sf-tipo-gestion','Todos');
   sfCreate('sf-gestor','Todos');
   sfCreate('sf-estado','Todos');
   sfCreate('sf-empresa','Todos');
@@ -891,20 +974,24 @@ function populateSel(sfId,vals,desc=false){
 }
 
 function applyFilters(){
-  const g =sfGetVals('sf-gestor');
-  const e =sfGetVals('sf-estado');
-  const t =sfGetVals('sf-empresa');
-  const l =sfGetVals('sf-enlace');
-  const lg=sfGetVals('sf-login');
-  const f =sfGetVals('sf-fecha');
+  const grp=sfGetVals('sf-grupo');
+  const tg =sfGetVals('sf-tipo-gestion');
+  const g  =sfGetVals('sf-gestor');
+  const e  =sfGetVals('sf-estado');
+  const t  =sfGetVals('sf-empresa');
+  const l  =sfGetVals('sf-enlace');
+  const lg =sfGetVals('sf-login');
+  const f  =sfGetVals('sf-fecha');
 
   filtered=allData.filter(r=>
-    (!g  || g.has(r[C.GESTOR]))&&
-    (!e  || e.has(getEst(r)))&&
-    (!t  || t.has(r[C.EMPRESA]))&&
-    (!l  || l.has(r[C.ENLACE]))&&
-    (!lg || lg.has(r[C.LOGIN]))&&
-    (!f  || f.has(r._fecha))
+    (!grp || grp.has(r[C.GRUPO]))&&
+    (!tg  || tg.has(r[C.TIPO_GESTION]))&&
+    (!g   || g.has(r[C.GESTOR]))&&
+    (!e   || e.has(getEst(r)))&&
+    (!t   || t.has(r[C.EMPRESA]))&&
+    (!l   || l.has(r[C.ENLACE]))&&
+    (!lg  || lg.has(r[C.LOGIN]))&&
+    (!f   || f.has(r._fecha))
   );
 
   const notaCorte=document.getElementById('nota-corte');
@@ -1268,7 +1355,13 @@ function renderResumen(){
   const map={};
   filtered.forEach(r=>{
     const g=r[C.GESTOR]||'Sin gestor';
-    if(!map[g])map[g]={plan:0,det:0,rep:0,asig:0,cli:new Set(),fechas:[]};
+    if(!map[g])map[g]={
+      plan:0,det:0,rep:0,asig:0,
+      cli:new Set(),fechas:[],
+      equipo:r[C.EQUIPO]||'—',
+      tipo:r[C.TIPO_GESTION]||'—',
+      grupo:r[C.GRUPO]||'—'
+    };
     if(esPlan(r))map[g].plan++;
     if(esDet(r)) map[g].det++;
     if(esRep(r)) map[g].rep++;
@@ -1285,11 +1378,20 @@ function renderResumen(){
   document.getElementById('tbl-count').textContent=rows.length+' GESTORES';
   document.getElementById('tbl-resumen').innerHTML=rows.length?rows.map(([g,d],i)=>{
     const tot=d.plan+d.det+d.rep+d.asig;
-    const bw=Math.round(tot/maxT*70);
+    const bw=Math.round(tot/maxT*60);
     const ult=d.fechas.sort().pop()||'—';
+    const tipoPill=d.tipo==='PROYECTOS'
+      ?`<span style="background:rgba(110,190,235,.18);color:#6EBEEB;border:1px solid rgba(110,190,235,.35);padding:2px 8px;border-radius:20px;font-size:10px;font-family:var(--font-cond);letter-spacing:.5px">${d.tipo}</span>`
+      :d.tipo==='OPERATIVO'
+      ?`<span style="background:rgba(52,211,153,.18);color:#34D399;border:1px solid rgba(52,211,153,.35);padding:2px 8px;border-radius:20px;font-size:10px;font-family:var(--font-cond);letter-spacing:.5px">${d.tipo}</span>`
+      :d.tipo==='OTROS'
+      ?`<span style="background:rgba(255,154,68,.18);color:#FF9A44;border:1px solid rgba(255,154,68,.35);padding:2px 8px;border-radius:20px;font-size:10px;font-family:var(--font-cond);letter-spacing:.5px">OTROS</span>`
+      :`<span style="color:var(--muted);font-size:11px">${d.tipo}</span>`;
     return`<tr>
       <td style="color:var(--muted);font-family:var(--font-cond)">${i+1}</td>
-      <td style="font-weight:700;color:var(--turquesa);font-family:var(--font-cond)">${g}</td>
+      <td style="font-weight:700;color:var(--turquesa);font-family:var(--font-cond)" data-tip="${esc(g)}">${g}</td>
+      <td style="font-size:11px;color:#9BBCD8;font-family:var(--font-cond)">${d.equipo}</td>
+      <td>${tipoPill}</td>
       <td style="font-family:var(--font-cond)">${tot} <span style="display:inline-block;height:3px;width:${bw}px;background:var(--turquesa);opacity:.5;border-radius:99px;vertical-align:middle;margin-left:4px"></span></td>
       <td><span class="pill p-plan">${d.plan}</span></td>
       <td><span class="pill p-det">${d.det}</span></td>
@@ -1298,7 +1400,45 @@ function renderResumen(){
       <td style="font-family:var(--font-cond)">${d.cli.size}</td>
       <td style="font-family:var(--font-cond);font-size:11px;color:var(--muted)">${fmtDate(ult)}</td>
     </tr>`;
-  }).join(''):`<tr><td colspan="10" class="empty">Sin datos</td></tr>`;
+  }).join(''):`<tr><td colspan="11" class="empty">Sin datos</td></tr>`;
+
+  // Resumen por TIPO_GESTIÓN
+  renderResumenPorTipo();
+}
+
+function renderResumenPorTipo(){
+  const tipoMap={};
+  filtered.filter(tieneCarga).forEach(r=>{
+    const t=r[C.TIPO_GESTION]||'OTROS';
+    if(!tipoMap[t])tipoMap[t]={plan:0,det:0,rep:0,asig:0,gestores:new Set(),cli:new Set()};
+    if(esPlan(r))tipoMap[t].plan++;
+    if(esDet(r)) tipoMap[t].det++;
+    if(esRep(r)) tipoMap[t].rep++;
+    if(esAsig(r))tipoMap[t].asig++;
+    tipoMap[t].gestores.add(r[C.GESTOR]||'');
+    if(r[C.CLIENTE])tipoMap[t].cli.add(r[C.CLIENTE]);
+  });
+  const tipoRows=Object.entries(tipoMap).sort((a,b)=>{
+    return(b[1].plan+b[1].det+b[1].rep+b[1].asig)-(a[1].plan+a[1].det+a[1].rep+a[1].asig);
+  });
+  const maxT=tipoRows[0]?(tipoRows[0][1].plan+tipoRows[0][1].det+tipoRows[0][1].rep+tipoRows[0][1].asig):1;
+  const el=document.getElementById('tbl-tipo-gestion');
+  if(!el)return;
+  el.innerHTML=tipoRows.length?tipoRows.map(([t,d])=>{
+    const tot=d.plan+d.det+d.rep+d.asig;
+    const bw=Math.round(tot/maxT*80);
+    const col=t==='PROYECTOS'?'#6EBEEB':t==='OPERATIVO'?'#34D399':t==='OTROS'?'#FF9A44':'var(--muted)';
+    return`<tr>
+      <td style="font-weight:700;font-family:var(--font-cond);color:${col}">${t}</td>
+      <td style="font-family:var(--font-cond)">${tot} <span style="display:inline-block;height:3px;width:${bw}px;background:${col};opacity:.6;border-radius:99px;vertical-align:middle;margin-left:4px"></span></td>
+      <td><span class="pill p-plan">${d.plan}</span></td>
+      <td><span class="pill p-det">${d.det}</span></td>
+      <td><span class="pill p-replan">${d.rep}</span></td>
+      <td><span class="pill p-asig">${d.asig}</span></td>
+      <td style="font-family:var(--font-cond);color:var(--muted)">${d.gestores.size}</td>
+      <td style="font-family:var(--font-cond);color:var(--muted)">${d.cli.size}</td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="8" class="empty">Sin datos</td></tr>`;
 }
 
 // ── GRÁFICO TOP GESTORES + DETALLE ────────────────────────────────────
@@ -1778,11 +1918,17 @@ async function loadAll(){
     const s=KNOWN_SHEETS[i];
     if(r.status==='fulfilled'){
       const rows=r.value;
-      // Solo filas con CLIENTE o NOMBRE_USR_ULT_PLAN válido (descartar filas vacías/basura del CSV)
       const valid=rows.filter(row=>
         (row[C.CLIENTE]||'').trim()!=='' ||
         (row[C.GESTOR]||'').trim()!==''
       );
+      // Enriquecer cada fila con GRUPO, EQUIPO y TIPO_GESTIÓN desde el mapa de personal
+      valid.forEach(row=>{
+        const pm=PERSONAL_MAP[(row[C.GESTOR]||'').trim()]||{};
+        row._grupo        = pm.grupo  || 'OTROS';
+        row._equipo       = pm.equipo || 'OTROS';
+        row._tipo_gestion = pm.tipo   || 'OTROS';
+      });
       allData.push(...valid);
       sheetStats[s.fecha]={
         total:valid.length,
@@ -1802,6 +1948,8 @@ async function loadAll(){
   });
 
   // Poblar filtros con los valores únicos del dataset completo
+  populateSel('sf-grupo',        allData.map(r=>r[C.GRUPO]));
+  populateSel('sf-tipo-gestion', allData.map(r=>r[C.TIPO_GESTION]));
   populateSel('sf-gestor', allData.map(r=>r[C.GESTOR]));
   const ESTADOS_OK=['Planificada','Detenido','Replanificada','AsignadoTarea','PrePlanificada'];
   populateSel('sf-estado', allData.map(r=>getEst(r)).filter(v=>ESTADOS_OK.includes(v)));
